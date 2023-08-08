@@ -10,10 +10,10 @@ from skimage.measure import marching_cubes, find_contours
 class SurfacePlotter:
     """evaluate and plot strength surface"""
 
-    def __init__(self, data_dir) -> None:
+    def __init__(self, data_dir: str) -> None:
         self.dir = data_dir
 
-    def plot(self, dim, ax=None, **kwargs):
+    def plot(self, dim: int, ax=None, save: bool = False, **kwargs):
         def get_srange(data_dir):
             pattern = r"srange\[(-?\d+(?:,\s*-?\d+)*)\]"
             matches = re.findall(pattern, data_dir)
@@ -34,9 +34,25 @@ class SurfacePlotter:
 
         if dim == 2:
             contours = find_contours(f[:, :, z_index], 0)
+            if save:
+                save_dir = self.dir.replace(".npy", "_2d.csv")
+                x_coord = contours[0][:, 0] * dx + xmin
+                y_coord = contours[0][:, 1] * dx + xmin
+                coords = np.column_stack((x_coord, y_coord))
+                np.savetxt(save_dir, coords, delimiter=",", comments="", fmt="%.2f")
+
         else:
             f_smooth = gaussian_filter(f, sigma=1)
             verts, faces, _, _ = marching_cubes(f_smooth, level=0)
+            if save:
+                verts_dir = self.dir.replace(".npy", "_3d_verts.csv")
+                faces_dir = self.dir.replace(".npy", "_3d_faces.csv")
+                x_coord = verts[:, 0] * dx + xmin
+                y_coord = verts[:, 1] * dx + xmin
+                z_coord = verts[:, 2] * dx + xmin
+                coords = np.column_stack((x_coord, y_coord, z_coord))
+                np.savetxt(verts_dir, coords, delimiter=",", comments="", fmt="%.2f")
+                np.savetxt(faces_dir, faces, delimiter=",", comments="", fmt="%.2f")
 
         # plot
         if ax is None:

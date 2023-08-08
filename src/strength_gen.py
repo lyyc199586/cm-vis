@@ -1,4 +1,4 @@
-# generate strength surface of various type
+# template script to generate strength surface of various type
 
 # %%
 from strength.gen import StrengthSurface
