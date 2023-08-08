@@ -1,2 +1,4 @@
 # my-vis
-my visulization scripts
+
+my visualization scripts
+

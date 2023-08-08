@@ -21,7 +21,7 @@ class StrengthSurface:
         def vms(s1, s2, s3, sigma_y):
             """calculate von mises yield surface
             props : [sigma_y]"""
-            sigma_v = 0.5 * np.sqrt((s1 - s2) ** 2 + (s2 - s3) ** 2 + (s3 - s1) ** 2)
+            sigma_v = np.sqrt(0.5 * ((s1 - s2) ** 2 + (s2 - s3) ** 2 + (s3 - s1) ** 2))
             f = sigma_v - sigma_y
 
             return f

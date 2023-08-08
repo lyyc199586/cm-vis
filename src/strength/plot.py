@@ -29,7 +29,7 @@ class SurfacePlotter:
         # evaulate contour of isosurface
         xmin, xmax, num = get_srange(self.dir)
         dx = (xmax - xmin) / (num - 1)
-        z_index = int((num - 1) / 2)  # index at z=0 plane, for 2D plot
+        z_index = int((0 - xmin) / dx)  # index at z=0 plane, for 2D plot
         f = np.load(self.dir)
 
         if dim == 2:

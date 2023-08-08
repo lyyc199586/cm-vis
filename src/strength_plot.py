@@ -7,6 +7,6 @@ file_name = "../data/strength/ss_pmma_VMS_props[10]_srange[-100, 100, 201]"
 data_dir = file_name + ".npy"
 
 plotter = SurfacePlotter(data_dir)
-plotter.plot(dim=3, save=True)
+plotter.plot(dim=2, save=False)
 
 # %%
