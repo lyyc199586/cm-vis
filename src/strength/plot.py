@@ -19,7 +19,6 @@ class SurfacePlotter:
             matches = re.findall(pattern, data_dir)
             if matches:
                 srange = [int(val) for val in matches[0].split(",")]
-                print(f"srange={srange}")
             else:
                 print("srange not found or wrong format!")
                 srange = -1
