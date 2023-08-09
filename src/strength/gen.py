@@ -62,11 +62,12 @@ class StrengthSurface:
             return f
         
         def spectral(s1, s2, s3, sts, lbda, mu, k, nu):
-            """Strength surface of phase field model with spectral split
+            """Strength surface of phase field model with spectral split (d=0)
             from Lorenzis's IJF paper (2021)
             props: [sigma_ts, lbda, mu, K, nu]
             warning: this is very time consuming since I dont know how to do 
             this calculation with ndarrays...
+            TODO: still wrong...
             """
             E = 9 * mu * k / (mu + 3 * k)
             
@@ -74,27 +75,24 @@ class StrengthSurface:
                 s3, s2, s1 = np.sort(np.array([s11, s22, s33]))
                 I1 = s1 + s2 + s3
                 J2 = 1 / 6 * ((s1 - s2) ** 2 + (s2 - s3) ** 2 + (s3 - s1) ** 2)
-                if s3 - nu * (s1 + s2) >= 0:
-                    F = I1**2 / 9 / k + J2 / mu - sts**2 / E
-                elif 2 * (lbda + mu) * s2 - lbda * (s1 + s3) >= 0 and s1 + s2 + s3 >= 0:
+                if(s3 - nu * (s1 + s2) >= 0):
+                    F = I1**2 / 9 / k + J2 / mu -  sts**2 / E
+                elif(2 * (lbda + mu) * s2 - lbda * (s1 + s3) >= 0 and s1 + s2 + s3 >= 0):
                     F = (4 * mu**2 * (s1**2 + s2**2) + 2 * lbda * mu *
                          (5 * s1**2 - 2 * s1 * s2 + 5 * s2**2 + s3**2) + lbda**2 *
                          (6 * (s1**2 + s2**2) - 2 * s2 * s3 + 2 * s3**2 - 2 * s1 *
                           (4 * s2 + s3))) / (2 * mu * (3 * lbda + 2 * mu)**2) - sts**2 / E
-                elif 2 * (lbda + mu) * s2 - lbda * (s1 + s3) >= 0 and s1 + s2 + s3 <= 0:
+                elif(2 * (lbda + mu) * s2 - lbda * (s1 + s3) >= 0 and s1 + s2 + s3 <= 0):
                     F = ((2 * (lbda + mu) * s1 - lbda * (s2 + s3))**2 +
-                         (2 * (lbda + mu) * s2 - lbda *
-                          (s1 + s3)**2)) / (2 * mu * (3 * lbda + 2 * mu)**2) - sts**2 / E
-                elif 2 * mu * s1 + lbda * (2 * s1 - s2 - s3) >= 0 and s1 + s2 + s3 >= 0:
+                         ((2 * (lbda + mu) * s2 - lbda * (s1 + s3))**2)) / (2 * mu * (3 * lbda + 2 * mu)**2) - sts**2 / E
+                elif(2 * mu * s1 + lbda * (2 * s1 - s2 - s3) >= 0 and s1 + s2 + s3 >= 0):
                     F = ((10 * lbda * mu + 4 * mu**2) * s1**2 + lbda *
                          (2 * mu * (s2 + s3)**2 + lbda *
-                          (-2 * s1 + s2 + s3)**2)) / (2 * mu *
-                          (3 * lbda + 2 * mu)**2) - sts**2 / E
-                elif 2 * (lbda + mu) * s1 - lbda * (s2 + s3) >= 0 and s1 + s2 + s3 <= 0:
-                    F = (2 * (lbda + mu) * s1 - lbda *
-                         (s2 + s3))**2 / (2 * mu * (3 * lbda + 2 * mu)**2) - sts**2 / E
+                          (-2 * s1 + s2 + s3)**2)) / (2 * mu * (3 * lbda + 2 * mu)**2) - sts**2 / E
+                elif(2 * (lbda + mu) * s1 - lbda * (s2 + s3) >= 0 and s1 + s2 + s3 <= 0):
+                    F = (2 * (lbda + mu) * s1 - lbda * (s2 + s3))**2 / (2 * mu * (3 * lbda + 2 * mu)**2) - sts**2 / E
                 else:
-                    F = I1**2 / 9 / k + J2 / mu - sts**2 / E
+                    F = I1**2 / 9 / k + J2 / mu -  sts**2 / E
                             
                 return F
             
