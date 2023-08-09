@@ -55,7 +55,7 @@ ytick.major.width: 0.25
 ytick.minor.size: 1
 ytick.minor.width: 0.15
 
-# tick pad
+# tick pad (only for 3d)
 # xtick.major.pad: -3
 # ytick.major.pad: -3
 

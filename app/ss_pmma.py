@@ -84,13 +84,9 @@ for s in ss:
     surface = StrengthSurface(s["stype"], s["props"], s["srange"], data_dir)
     surface.gen()
     plotter = SurfacePlotter(data_dir)
-    ax = plotter.plot(dim=2, save=True)
+    ax = plotter.plot(dim=3, save=True)
 
-# %% surface plot
-import matplotlib.pyplot as plt
-
-plt.style.use("../misc/elsevier.mplstyle")
-fig, ax = plt.subplots()
+# %% plot settings
 
 ss = [vms, drucker, isotropic, voldev, spectral, nuc2020, nuc2022]
 ss1 = [isotropic, voldev, spectral]
@@ -105,23 +101,64 @@ labels = {
     'KLRNUC':"Nuc-PFM (2022)",
 }
 
-# plot
+# %% 2d contour plot
+import matplotlib.pyplot as plt
+
+plt.style.use("../misc/elsevier.mplstyle")
+fig, ax = plt.subplots(1, 2, figsize=(6.4, 2.655))
+
+for s in ss1:
+    data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
+    plotter = SurfacePlotter(data_dir)
+    plotter.plot(dim=2, ax=ax[0], label=labels[s["stype"]])
+    
 for s in ss2:
     data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
     plotter = SurfacePlotter(data_dir)
-    plotter.plot(dim=2, ax=ax, label=labels[s["stype"]])
+    plotter.plot(dim=2, ax=ax[1], label=labels[s["stype"]])
 
 
 # annotate
-ax.set_xlim([-20, 7.5])
-ax.set_ylim([-20, 7.5])
-ax.set_aspect("equal")
-ax.set_title("Strength surface of PMMA")
-ax.set_xlabel("$\sigma_{1}$ (MPa)")
-ax.set_ylabel("$\sigma_{2}$ (MPa)")
-ax.legend()
+fig.suptitle("Strength surface of PMMA")
+for ax_i in ax:
+    ax_i.set_xlim([-20, 7.5])
+    ax_i.set_ylim([-20, 7.5])
+    ax_i.set_aspect("equal")
+    ax_i.set_xlabel("$\sigma_{1}$ (MPa)")
+    ax_i.set_ylabel("$\sigma_{2}$ (MPa)")
+    ax_i.legend(loc='lower left')
 
+
+#%% 3d isosurface plot
+import matplotlib.pyplot as plt
+
+plt.style.use("../misc/elsevier.mplstyle")
+fig, ax = plt.subplots(2, 2, figsize=(6.4, 6.4), subplot_kw={"projection": "3d"})
+# plt.tight_layout()
+
+ss3 = [[spectral, drucker], [nuc2020, nuc2022]]
+colors = [['tab:blue', 'tab:red'], ['tab:orange', 'tab:green']]
+
+for i in range(2):
+    for j in range(2):
+        s = ss3[i][j]
+        data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
+        plotter = SurfacePlotter(data_dir)
+        plotter.plot(dim=3, ax=ax[i][j], label=labels[s["stype"]], color=colors[i][j], alpha=0.8)
+        
+        # annotate
+        ax[i][j].set_aspect("equal")
+        ax[i][j].set_xlabel("$\sigma_{1}$ (MPa)", labelpad=-5)
+        ax[i][j].set_ylabel("$\sigma_{2}$ (MPa)", labelpad=-5)
+        ax[i][j].set_zlabel("$\sigma_{3}$ (MPa)", labelpad=-5)
+        ax[i][j].tick_params(axis='x', pad=-3)
+        ax[i][j].tick_params(axis='y', pad=-3)
+        ax[i][j].tick_params(axis='z', pad=-1)
+        ax[i][j].set_title(labels[s["stype"]])
+        
+
+fig.suptitle("Strength surface of PMMA")
 # %% save plot
 save_dir = "../example/"
-ax.figure.savefig(save_dir + "ss_pmma_2d_2.png")
+fig.savefig(save_dir + "ss_pmma_3d.png")
 # %%

@@ -11,11 +11,10 @@ For example, plot various type of strength surface of PMMA
 
 * 2D contours
   
-![ss_2d_1](./example/ss_pmma_2d_1.png)
-![ss_2d_2](./example/ss_pmma_2d_2.png)
+![ss_2d_1](./example/ss_pmma_2d.png)
 
-* 3D isosurface (Drucker-Prager type)
+* 3D isosurface
   
-![ss_3d_drucker](./example/ss_pmma_3d_drucker.png)
+![ss_3d_drucker](./example/ss_pmma_3d.png)
 
 The contour line (in 2D) and vertices and faces of isosurface (in 3D) can be output to csv with option `save=True`.
