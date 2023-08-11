@@ -67,7 +67,6 @@ class StrengthSurface:
             props: [sigma_ts, lbda, mu, K, nu]
             warning: this is very time consuming since I dont know how to do 
             this calculation with ndarrays...
-            TODO: still wrong...
             """
             E = 9 * mu * k / (mu + 3 * k)
             
