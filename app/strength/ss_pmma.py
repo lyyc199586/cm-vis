@@ -4,7 +4,7 @@ see Michael Borden's PhD thesis at p132 and Rudy's paper on coheisve PFM"""
 # %% settings
 import sys
 
-sys.path.append("../src")
+sys.path.append("../../src")
 
 import numpy as np
 from strength.gen import StrengthSurface
@@ -80,7 +80,7 @@ nuc2022 = {
 ss = [spectral]
 
 for s in ss:
-    data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
+    data_dir = f"../../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
     surface = StrengthSurface(s["stype"], s["props"], s["srange"], data_dir)
     surface.gen()
     plotter = SurfacePlotter(data_dir)
@@ -108,12 +108,12 @@ plt.style.use("../misc/elsevier.mplstyle")
 fig, ax = plt.subplots(1, 2, figsize=(6.4, 2.655))
 
 for s in ss1:
-    data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
+    data_dir = f"../../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
     plotter = SurfacePlotter(data_dir)
     plotter.plot(dim=2, ax=ax[0], label=labels[s["stype"]])
     
 for s in ss2:
-    data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
+    data_dir = f"../../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
     plotter = SurfacePlotter(data_dir)
     plotter.plot(dim=2, ax=ax[1], label=labels[s["stype"]])
 
@@ -132,7 +132,7 @@ for ax_i in ax:
 #%% 3d isosurface plot
 import matplotlib.pyplot as plt
 
-plt.style.use("../misc/elsevier.mplstyle")
+plt.style.use("../../misc/elsevier.mplstyle")
 fig, ax = plt.subplots(2, 2, figsize=(6.4, 6.4), subplot_kw={"projection": "3d"})
 # plt.tight_layout()
 
@@ -142,7 +142,7 @@ colors = [['tab:blue', 'tab:red'], ['tab:orange', 'tab:green']]
 for i in range(2):
     for j in range(2):
         s = ss3[i][j]
-        data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
+        data_dir = f"../../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
         plotter = SurfacePlotter(data_dir)
         plotter.plot(dim=3, ax=ax[i][j], label=labels[s["stype"]], color=colors[i][j], alpha=0.8)
         
