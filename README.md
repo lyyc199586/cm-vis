@@ -1,10 +1,10 @@
-# my-vis
+# CM-VIS
 
-my visualization scripts
+My computational mechanics visualization scripts
 
-## plots library
+## Gallery
 
-### strength
+### Strength
 > plot strength surface of various type given material properties, including Von Mises, Drucker-Prager, phase field model with no split, V-D split, and spectral split, nucleation phase field models (Kumar et al. 2020 and 2022)
 
 For example, plot various type of strength surface of PMMA
