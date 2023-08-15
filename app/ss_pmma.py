@@ -159,6 +159,6 @@ for i in range(2):
 
 fig.suptitle("Strength surface of PMMA")
 # %% save plot
-save_dir = "../example/"
+save_dir = "../out/"
 fig.savefig(save_dir + "ss_pmma_3d.png")
 # %%

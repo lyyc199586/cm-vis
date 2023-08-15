@@ -39,6 +39,6 @@ fig.suptitle("FEM visualization of Brazilian split test")
 
 # %%
 # %% save plot
-save_dir = "../example/"
+save_dir = "../out/"
 fig.savefig(save_dir + "post_brz.png")
 # %%
