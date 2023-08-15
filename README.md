@@ -2,6 +2,14 @@
 
 My computational mechanics visualization scripts
 
+## Requirements
+* numpy
+* re
+* scipy
+* skimage
+* matplotlib
+* netCDF4
+
 ## Gallery
 
 ### Strength
