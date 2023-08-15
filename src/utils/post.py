@@ -16,7 +16,7 @@ class FEMPlotter:
         self.faces = faces
         
     def plot(self, var=None, ax=None, **kwargs):
-        """return matplotlib axe"""
+        """return matplotlib axe and plot object"""
         
         n_nodes = np.size(self.verts, 0)
         n_elements = np.size(self.faces, 0)
@@ -39,7 +39,7 @@ class FEMPlotter:
                                antialiaseds=True, facecolor="none", edgecolor="k", **kwargs)
             ax.add_collection(p)
             ax.autoscale()
-            return ax
+            return (ax, p)
         else:
             clim = (np.min(var), np.max(var))
         
@@ -65,9 +65,9 @@ class FEMPlotter:
                 
             # plot nodal value with tripcolor
             tri_obj = tri.Triangulation(self.verts[:, 0], self.verts[:, 1], triangles)
-            ax.tripcolor(tri_obj, var, clim=clim, cmap=plt.cm.coolwarm, 
-                         shading="gouraud", **kwargs)
-                    
+            p = ax.tripcolor(tri_obj, var, clim=clim, cmap=plt.cm.coolwarm, 
+                             shading="gouraud", **kwargs)
+            
         else:
             # plot elemental variable with PolyCollection
             p = PolyCollection([self.verts[face] for face in self.faces], closed=True, array=var,
@@ -76,4 +76,4 @@ class FEMPlotter:
             ax.add_collection(p)
             ax.autoscale()
         
-        return ax
+        return (ax, p)
