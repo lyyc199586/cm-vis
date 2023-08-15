@@ -69,7 +69,7 @@ class Exodus:
             vals = model.variables[f'vals_nod_var{var_index+1}'][:][timestep]
         elif(var_name in elem_var_names):
             var_index = elem_var_names.index(var_name)
-            vals = model.variables[f'vals_elem_var{var_index+1}'][:][timestep]
+            vals = model.variables[f'vals_elem_var{var_index+1}eb1'][:][timestep]
         else:
             print("No such variable!")
             return None
