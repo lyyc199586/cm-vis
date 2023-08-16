@@ -26,29 +26,43 @@ ell = 1
 delta = 0
 
 drucker = {
-    "mname": "pmma",
+    "mname": "basalt",
     "stype": "DRUCKER",
     "props": [sigma_ts, sigma_cs],
     "srange": [-300, 30, 331],
 }
 
 nuc2022 = {
-    "mname": "pmma",
+    "mname": "basalt",
     "stype": "KLRNUC",
     "props": [sigma_ts, sigma_cs, mu, lbda, K, Gc, ell, delta],
     "srange": [-300, 30, 331],
 }
 
+voldev = {
+    "mname": "basalt",
+    "stype": "VOLDEV",
+    "props": [sigma_ts, mu, K],
+    "srange": [-300, 30, 331],
+}
+
+spectral = {
+    "mname": "basalt",
+    "stype": "SPECTRAL",
+    "props": [sigma_ts, lbda, mu, K, nu],
+    "srange": [-300, 30, 331],
+}
+
 # %% surface gen
 # ss = [vms, drucker]
-ss = [drucker, nuc2022]
+ss = [drucker, nuc2022, voldev, spectral]
 
 for s in ss:
     data_dir = f"../../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
     surface = StrengthSurface(s["stype"], s["props"], s["srange"], data_dir)
     surface.gen()
     plotter = SurfacePlotter(data_dir)
-    ax = plotter.plot(dim=2, save=True)
+    ax = plotter.plot(dim=2, save=False)
 
 # %% 2d contour plot
 import matplotlib.pyplot as plt
@@ -66,7 +80,7 @@ labels = {
     'KLRNUC':"Nuc-PFM (2022)",
 }
 
-ss1 = [drucker, nuc2022]
+ss1 = [drucker, nuc2022, voldev, spectral]
 for s in ss1:
     data_dir = f"../../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
     plotter = SurfacePlotter(data_dir)
@@ -75,8 +89,8 @@ for s in ss1:
 # annotate
 fig.suptitle("Strength surface of Basalt")
 ax.set_aspect("equal")
-ax.set_xlim([-250, 50])
-ax.set_ylim([-250, 50])
+ax.set_xlim([-200, 20])
+ax.set_ylim([-200, 20])
 ax.set_xlabel("$\sigma_{1}$ (MPa)")
 ax.set_ylabel("$\sigma_{2}$ (MPa)")
 ax.legend(loc='lower left')
