@@ -44,7 +44,7 @@ class SurfacePlotter:
 
         else:
             f_smooth = gaussian_filter(f, sigma=1, order=0)
-            verts, faces, _, _ = marching_cubes(f_smooth, level=-1.5e-4)
+            verts, faces, _, _ = marching_cubes(f_smooth, level=0)
             if(save):
                 verts_dir = self.dir.replace(".npy", "_3d_verts.csv")
                 faces_dir = self.dir.replace(".npy", "_3d_faces.csv")

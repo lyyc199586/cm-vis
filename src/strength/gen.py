@@ -91,8 +91,8 @@ class StrengthSurface:
                 elif(2 * (lbda + mu) * s1 - lbda * (s2 + s3) >= 0 and s1 + s2 + s3 <= 0):
                     F = (2 * (lbda + mu) * s1 - lbda * (s2 + s3))**2 / (2 * mu * (3 * lbda + 2 * mu)**2) - sts**2 / E
                 else:
-                    F = I1**2 / 9 / k + J2 / mu -  sts**2 / E
-                            
+                    F = -(I1**2 / 9 / k + J2 / mu) -  sts**2 / E
+                                                
                 return F
             
             f = np.zeros_like(s1)
