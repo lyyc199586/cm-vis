@@ -20,7 +20,7 @@ stress_11 = exodus.get_var(var_name="stress_11", timestep=-1)
 #%% plot
 import matplotlib.pyplot as plt
 
-plt.style.use("../misc/elsevier.mplstyle")
+plt.style.use("../misc/fem.mplstyle")
 fig, axes = plt.subplots(1, 3, figsize=(6.4, 2.655))
 
 plot_vars = [None, d, stress_11]
@@ -28,7 +28,7 @@ plotter = FEMPlotter(verts, faces)
 
 for i, ax in enumerate(axes):
     _, p = plotter.plot(plot_vars[i], ax=ax, lw=0.1)
-    ax.set_aspect("equal")
+    ax.set(aspect="equal", xticklabels=[], yticklabels=[])
     if(plot_vars[i] is not None):
         ax.figure.colorbar(p, ax=ax, fraction=0.046, pad=0.1, orientation='horizontal')
 

@@ -1,4 +1,4 @@
-# style sheet for elsevier journals single colomns
+# style sheet for fem post processing
 
 # Figure Properties
 figure.figsize: 3.2, 2.655 # aspect ratio 6:5, width=0.9\columnwidth
@@ -8,7 +8,6 @@ figure.dpi: 1000           # figure dots per inch
 font.family: serif
 font.size: 9 # for IJNM
 text.usetex: True
-pgf.rcfonts: False # when output to pgf, dont specify font properties
 
 # Lines
 lines.linewidth: 0.8
@@ -16,12 +15,12 @@ lines.markersize: 3.0
 lines.markeredgewidth: 0.8
 
 # Axes
-axes.spines.left: True
-axes.spines.bottom: True
-axes.spines.top: True
-axes.spines.right: True
+axes.spines.left: False
+axes.spines.bottom: False
+axes.spines.top: False
+axes.spines.right: False
 axes.linewidth: 0.5
-axes.grid: True
+axes.grid: False
 
 # Grid
 grid.linewidth: 0.1
@@ -36,12 +35,12 @@ ytick.labelsize : 9
 
 # x-axis
 xtick.top: False
-xtick.bottom: True
+xtick.bottom: False
 xtick.direction: in
 
 # y-axis
 ytick.right: False
-ytick.left: True
+ytick.left: False
 ytick.direction: in
 
 # x-axis
