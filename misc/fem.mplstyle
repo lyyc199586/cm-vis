@@ -6,7 +6,7 @@ figure.dpi: 1000           # figure dots per inch
 
 # Font Properties
 font.family: serif
-font.size: 7
+font.size: 9
 text.usetex: True
 
 # Lines

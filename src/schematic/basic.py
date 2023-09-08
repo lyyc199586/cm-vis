@@ -35,10 +35,13 @@ class SchemeBase:
                               joinstyle='miter', capstyle='butt')
         return arr
     
-    def add_text(self, textx, texty, text, textfc, loc):
+    def add_text(self, textx, texty, text, textfc=None, loc=None):
         '''base function to draw text
         '''
         textloc = None
+        if(textfc is None):
+            textfc = 'None'
+            
         match loc:
             case "center":
                 textloc = dict(ha='center', va='center')
@@ -94,9 +97,6 @@ class Scheme(SchemeBase):
         if(text is None):
             text = str(radius)
 
-        if(textfc is None):
-            textfc = 'None'
-
         xyto = [center[0] + radius*np.cos(angle/180*np.pi), 
                 center[1] + radius*np.sin(angle/180*np.pi)]
         arr_dim = self.add_arrow("-latex", center, xyto)
@@ -112,6 +112,7 @@ class Scheme(SchemeBase):
         scale: scale the length of the arrow
         interval: interval between arrows
         '''
+        n_nodes = np.size(bnd, 0)
         shift = None
         match loc:
             case "left":
@@ -126,7 +127,7 @@ class Scheme(SchemeBase):
                 shift = 4*scale*self.lw
             
         bnd_s = np.vstack([bnd[:, 0] + shift, bnd[:, 1] + shift]).T
-        segs = [[bnd[i], bnd_s[i]] for i in range(0, np.size(bnd, 0), interval)]
+        segs = [[bnd[i], bnd_s[i]] for i in range(0, n_nodes, interval)]
         lines = LineCollection(segs, color='k')
         self.ax.add_collection(lines)
         
@@ -142,8 +143,7 @@ class Scheme(SchemeBase):
         scale: scale the length of the arrow
         interval: interval between arrows
         '''
-        
-        arrs = []
+        n_nodes = np.size(bnd, 0)
         if(type == "tail"):
             scale = scale
             arr_type = "-latex"
@@ -153,8 +153,11 @@ class Scheme(SchemeBase):
             
         bnd_s = np.vstack([bnd[:, 0] + scale*bc[:, 0], bnd[:, 1] + scale*bc[:, 1]]).T
             
-        for i in range(0, np.size(bnd, 0), interval):
+        for i in range(0, n_nodes, interval):
             arr = self.add_arrow(arr_type, bnd[i], bnd_s[i])
             self.ax.add_patch(arr) # cannot use add_collection, will lost all the features of arrow
         
         self.ax.plot(bnd_s[::interval, 0], bnd_s[::interval, 1], 'k')
+        
+        if(text is not None):
+            self.add_text(bnd_s[n_nodes//2, 0], bnd_s[n_nodes//2, 1], text=text, loc=loc)

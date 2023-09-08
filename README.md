@@ -12,11 +12,17 @@ My computational mechanics visualization scripts
 
 ## Gallery
 
-### FEM
-> plot mesh, nodal variable and elemental variable on tri and quad mesh from FEM result files.
-> see `./app/post_brz.py`
+### FEM: schematic
+> plot schematics of simulation setups
+> see `./app/brz_scheme.py`
 
-![post_brz](./out/post_brz.png)
+![brz_scheme](out/brz_contact_scheme.png)
+
+### FEM: results
+> plot mesh, nodal variable and elemental variable on tri and quad mesh from FEM result files.
+> see `./app/brz_post.py`
+
+![brz_post](./out/post_brz.png)
 
 ### Strength surface
 > plot strength surface of various type given material properties, including Von Mises, Drucker-Prager, phase field model with no split, V-D split, and spectral split, nucleation phase field models (Kumar et al. [2020](https://doi.org/10.1016/j.jmps.2020.104027) and [2022](https://doi.org/10.1007/s10704-022-00653-z)).
