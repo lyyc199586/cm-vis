@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib.patches import Circle, Rectangle
 
 fig = plt.figure(figsize=(6.4, 2.655))
+plt.style.use("../misc/elsevier.mplstyle")
 
 # plot schematic diagram
 with plt.style.context("../misc/fem.mplstyle"):
@@ -19,7 +20,7 @@ with plt.style.context("../misc/fem.mplstyle"):
   ax1.add_patch(disk)
   ax1.add_patch(left_platen)
   ax1.add_patch(right_platen)
-  ax1.set(xlim=[-40, 40], ylim=[-40, 40], aspect='equal', title='$\mathrm{Setups}$')
+  ax1.set(xlim=[-40, 40], ylim=[-40, 40], aspect='equal', title='Setups')
 
   # draw scheme
   scheme = Scheme(ax1, lw=0.4)
@@ -46,8 +47,8 @@ with plt.style.context("../misc/elsevier.mplstyle"):
   ax2 = fig.add_subplot(1, 2, 2)
   ax2.plot(t, load)
   
-  ax2.set(title="$\mathrm{Load}$", xlabel="$\mathrm{Time}, t(\mu\mathrm{s})$",
-          ylabel="$\mathrm{Displacement}, \overline{u}_x (\mathrm{mm})$")
+  ax2.set(title="Load", xlabel="Time, $t (\mu\mathrm{s})$",
+          ylabel="Displacement, $\overline{u}_x (\mathrm{mm})$")
 
 
 # %% save plot
