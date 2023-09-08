@@ -6,15 +6,16 @@ figure.dpi: 1000           # figure dots per inch
 
 # Font Properties
 font.family: serif
-font.size: 9 # for IJNM
+font.size: 7
 text.usetex: True
 
 # Lines
-lines.linewidth: 0.8
+lines.linewidth: 0.4
 lines.markersize: 3.0
-lines.markeredgewidth: 0.8
+lines.markeredgewidth: 0.4
 
 # Axes
+axes.axisbelow: False
 axes.spines.left: False
 axes.spines.bottom: False
 axes.spines.top: False
@@ -37,11 +38,13 @@ ytick.labelsize : 9
 xtick.top: False
 xtick.bottom: False
 xtick.direction: in
+xtick.labelbottom: False
 
 # y-axis
 ytick.right: False
 ytick.left: False
 ytick.direction: in
+ytick.labelleft: False
 
 # x-axis
 xtick.major.size: 5
