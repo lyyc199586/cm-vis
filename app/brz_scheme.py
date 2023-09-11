@@ -24,15 +24,22 @@ with plt.style.context("../misc/fem.mplstyle"):
 
   # draw scheme
   scheme = Scheme(ax1, lw=0.4)
-  scheme.dim_radius([0, 0], 25, angle=55, text='$r$', loc='upper')
+  scheme.dim_dist([-25, -25], [25, -25], textloc='lower')
+  scheme.dim_radius([0, 0], 25, angle=45, text='$r$', textloc='upper')
+  scheme.dim_angle(5, 0, 45, center=[0, 0], 
+                   text="$\\theta$", arrowloc="stop", textloc="right")
+  
+  # draw coord axis
+  scheme.add_coord_axis(length=np.array([10, 10]))
 
   # def bc
   left_bnd = np.vstack((-30*np.ones(100), np.linspace(-20, 20, 100))).T
   right_bnd = np.vstack((30*np.ones(100), np.linspace(-20, 20, 100))).T
   bcs = np.vstack((8*np.ones(100), np.zeros(100))).T
 
-  scheme.add_dist_bc(left_bnd, bcs, type="head", scale=1, interval=7, text="$\overline{u}_x$", loc="left")
-  scheme.add_fix_bc(right_bnd, loc="right", interval=4)
+  scheme.add_dist_bc(left_bnd, bcs, type="head", scale=1, interval=7, 
+                     text="$\overline{u}_x$", textloc="left")
+  scheme.add_fix_bc(right_bnd, spacing=4, angle=-45)
 
 # plot boundary condition vs. time
 with plt.style.context("../misc/elsevier.mplstyle"):
