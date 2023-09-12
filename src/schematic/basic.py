@@ -16,12 +16,21 @@ class SchemeBase:
         else:
             self.lw = lw
     
-    def add_arrow(self, type, xyfrom, xyto):
-        '''base function to draw straight arraw
-        type: customized matplotlib arrow type
+    def add_arrow(self, type, xy=None, path=None):
+        '''base function to draw straight arraw:
+        type: customized matplotlib arrow type,
+        use posA=xy[0], posB=xy[1] for straight path, or path=path for any path
         '''
-        arrow_props = dict(posA=xyfrom, posB=xyto, shrinkA=0, shrinkB=0, lw=self.lw,
+        if(xy is None and path is None ):
+            raise ValueError("Provide either xy=(xyfrom, xyto) or path!")
+        
+        if(path is None):
+            arrow_props = dict(posA=xy[0], posB=xy[1], shrinkA=0, shrinkB=0, lw=self.lw,
                            joinstyle="miter", capstyle="butt", fc='k')
+        else:
+            arrow_props = dict(path=path, shrinkA=0, shrinkB=0, lw=self.lw,
+                           joinstyle="miter", capstyle="butt", fc='k')
+        
         match type:
             case "-latex":
                 style = ArrowStyle('-|>', head_length=6*self.lw, head_width=2*self.lw)
@@ -73,7 +82,7 @@ class SchemeBase:
         for i in range(np.size(length)):
             xyto = origin.copy()
             xyto[i] = xyto[i] + length[i]
-            self.add_arrow("-latex", origin, xyto)
+            self.add_arrow("-latex", xy=(origin, xyto))
             self.add_text(xyto[0], xyto[1], text[i], loc=textloc[i])
             
     def add_curve(self, verts, **kwargs):
@@ -100,13 +109,13 @@ class Scheme(SchemeBase):
         if(textfc is None):
             textfc = 'None'
 
+        # add arrows
+        self.add_arrow("latex-latex", xy=(xyfrom, xyto))
+        self.add_arrow("bar-bar", xy=(xyfrom, xyto))
+        
+        # add text
         textx = (xyfrom[0] + xyto[0])/2
         texty = (xyfrom[1] + xyto[1])/2
-
-        # add arrows
-        self.add_arrow("latex-latex", xyfrom, xyto)
-        self.add_arrow("bar-bar", xyfrom, xyto)
-        # add text
         self.add_text(textx, texty, text, textfc, loc=textloc)
 
     def dim_radius(self, center, radius, angle=45, text=None, textfc=None, textloc=None):
@@ -118,7 +127,7 @@ class Scheme(SchemeBase):
 
         xyto = [center[0] + radius*np.cos(angle/180*np.pi), 
                 center[1] + radius*np.sin(angle/180*np.pi)]
-        self.add_arrow("-latex", center, xyto)
+        self.add_arrow("-latex", xy=(center, xyto))
         self.add_text(xyto[0]/2, xyto[1]/2, text, textfc, loc=textloc)
         
     def dim_angle(self, radius, start_deg, stop_deg, xyfrom=None, center=None, 
@@ -129,7 +138,7 @@ class Scheme(SchemeBase):
         arrowloc: "stop", "start", "both" or "None"
         '''
         if((xyfrom is None and center is None) or (xyfrom is None and center is None)):
-            raise ValueError("Provide either xyfrom=[x0, y0] or center=[x0, y0]")
+            raise ValueError("Provide either xyfrom=[x0, y0] or center=[x0, y0]!")
         
         start = np.radians(start_deg)
         stop = np.radians(stop_deg)
@@ -150,19 +159,13 @@ class Scheme(SchemeBase):
         # generate arrow based on arc_path
         match arrowloc:
             case "stop":
-                style = ArrowStyle('-|>', head_length=6*self.lw, head_width=2*self.lw)
+                self.add_arrow("-latex", path=arc_path)
             case "start":
-                style = ArrowStyle('<|-', head_length=6*self.lw, head_width=2*self.lw)
+                self.add_arrow("latex-", path=arc_path)
             case "both":
-                style = ArrowStyle('<|-|>', head_length=6*self.lw, head_width=2*self.lw)
+                self.add_arrow("latex-latex", path=arc_path)
             case _:
-                style = ArrowStyle('-')
-        
-        arrow_props = dict(path=arc_path, shrinkA=0, shrinkB=0, lw=self.lw,
-                           arrowstyle=style, joinstyle="miter", capstyle="butt", 
-                           fc='k')
-        arr = FancyArrowPatch(**arrow_props)
-        self.ax.add_patch(arr)
+                self.add_arrow(path=arc_path)
         
         # add text
         textxy = [center[0] + radius*np.cos((start + stop)/2), 
@@ -206,7 +209,7 @@ class Scheme(SchemeBase):
         bnd_s = np.vstack([bnd[:, 0] + scale*bc[:, 0], bnd[:, 1] + scale*bc[:, 1]]).T
             
         for i in range(0, n_nodes, interval):
-            self.add_arrow(arr_type, bnd[i], bnd_s[i])
+            self.add_arrow(arr_type, xy=(bnd[i], bnd_s[i]))
         
         self.ax.plot(bnd_s[::interval, 0], bnd_s[::interval, 1], 'k')
         
