@@ -1,8 +1,8 @@
 """ FEM postprocessing of dynamic Brazilian split tests"""
 
 # %% settings
-from cm_vis.utils.exodus import Exodus
-from cm_vis.utils.post import FEMPlotter
+from cm_vis.fem.exodus import Exodus
+from cm_vis.fem.post import FEMPlotter
 
 file_dir = "../../temp/brz_nuc22_p300_a10_l2.5_d5_iref2.e"
 exodus = Exodus(file_dir)
