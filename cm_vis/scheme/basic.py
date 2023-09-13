@@ -119,7 +119,7 @@ class SchemeBase:
                 codes[-1] = Path.CLOSEPOLY
             
         else:
-            # if line, simply use connect them
+            # if line, simply connect them
             points = verts
             codes = [Path.MOVETO] + [Path.LINETO] * (np.size(points, 0) - 1)
             if(closed):
@@ -140,7 +140,7 @@ class SchemeBase:
     
 class Scheme(SchemeBase):
     
-    def dim_dist(self, xyfrom, xyto, text=None, textfc=None, textloc=None):
+    def dim_dist(self, xyfrom, xyto, text=None, textfc=None, textloc=None, offset=None):
         '''annotate dimension with text in the center:
         |<|--- text ---|>|, if text is None, use the distance
         ax: matplotlib axes object
@@ -161,9 +161,9 @@ class Scheme(SchemeBase):
         # add text
         textx = (xyfrom[0] + xyto[0])/2
         texty = (xyfrom[1] + xyto[1])/2
-        self.add_text(textx, texty, text, textfc, loc=textloc)
+        self.add_text(textx, texty, text, textfc, loc=textloc, offset=offset)
 
-    def dim_radius(self, center, radius, angle=45, text=None, textfc=None, textloc=None):
+    def dim_radius(self, center, radius, angle=45, text=None, textfc=None, textloc=None, offset=None):
         '''annotate radius for arc:
         --text--|>, if text is None, use str(radius)
         '''
@@ -173,10 +173,10 @@ class Scheme(SchemeBase):
         xyto = [center[0] + radius*np.cos(angle/180*np.pi), 
                 center[1] + radius*np.sin(angle/180*np.pi)]
         self.add_arrow("-latex", xy=(center, xyto))
-        self.add_text(xyto[0]/2, xyto[1]/2, text, textfc, loc=textloc)
+        self.add_text(xyto[0]/2, xyto[1]/2, text, textfc, loc=textloc, offset=offset)
         
     def dim_angle(self, radius, start_deg, stop_deg, xyfrom=None, center=None, 
-                  arrowloc="stop", text=None, textloc=None):
+                  arrowloc="stop", text=None, textloc=None, offset=None):
         '''annotate angle for arc: just like \draw(x, y) arc (start_deg:stop_deg:radius)
         |<--text-->|, if text is None, use str(abs(stop_deg - start_deg))
         provide either xyfrom=[x0, y0] or center=[x0, y0]
@@ -215,7 +215,7 @@ class Scheme(SchemeBase):
         # add text
         textxy = [center[0] + radius*np.cos((start + stop)/2), 
                   center[1] + radius*np.sin((start + stop)/2)]
-        self.add_text(textxy[0], textxy[1], text, loc=textloc)
+        self.add_text(textxy[0], textxy[1], text, loc=textloc, offset=offset)
     
     def add_fix_bc(self, bnd, scale=1, spacing=1, angle=45):
         '''annotate fix boundary with short inclined lines: ///////
@@ -232,7 +232,7 @@ class Scheme(SchemeBase):
                                                                 angle=angle,
                                                                 length=length)])
         
-    def add_point_bc(self, bnd, bc, type="tail", scale=1, text=None, textloc=None):
+    def add_point_bc(self, bnd, bc, type="tail", scale=1, text=None, textloc=None, offset=None):
         '''base function to annotate point boundary condition: |-->
         bnd: boundary node, np.array([x1, y1])
         bc: boundary condition, np.array([dx1, dy1])
@@ -252,7 +252,7 @@ class Scheme(SchemeBase):
         
         if(text is not None):
             self.add_text((bnd[0] + bnd_s[0])/2, (bnd[1] + bnd_s[1])/2, 
-                          text=text, loc=textloc)
+                          text=text, loc=textloc, offset=offset)
         
     def add_dist_bc(self, bnd, bc, type="tail", scale=1, interval=1, 
                     text=None, textloc=None, offset=None):
