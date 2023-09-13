@@ -2,11 +2,15 @@
 
 My computational mechanics visualization scripts
 
+## Installation
+```
+pip install git+https://github.com/lyyc199586/cm-vis.git
+```
+
 ## Requirements
 * numpy
-* re
 * scipy
-* skimage
+* scikit-image
 * matplotlib
 * netCDF4
 
