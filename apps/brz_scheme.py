@@ -1,7 +1,5 @@
 #%% plot schematic diagram for Brazilian contact test
-import sys
-sys.path.append("../src")
-from scheme.basic import Scheme
+from cm_vis.scheme.basic import Scheme
 
 import matplotlib.pyplot as plt
 import numpy as np

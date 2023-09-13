@@ -2,13 +2,9 @@
 see Michael Borden's PhD thesis at p132 and Rudy's paper on coheisve PFM"""
 
 # %% settings
-import sys
-
-sys.path.append("../src")
-
 import numpy as np
-from strength.gen import StrengthSurface
-from strength.plot import SurfacePlotter
+from cm_vis.strength.gen import StrengthSurface
+from cm_vis.strength.plot import SurfacePlotter
 
 # material properties of PMMA, unit: MPa, N, mm, s
 E = 32e3

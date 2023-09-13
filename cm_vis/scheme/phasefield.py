@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch
-from scheme.basic import Scheme
+from .basic import Scheme
 
 class PFScheme(Scheme):
     
