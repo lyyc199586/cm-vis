@@ -1,16 +1,18 @@
 import numpy as np
+from scipy.interpolate import interp1d
 import matplotlib
 import matplotlib.patheffects as patheffects
 from matplotlib.path import Path
-from matplotlib.patches import Arc, FancyArrowPatch, ArrowStyle, ConnectionStyle
+from matplotlib.patches import Arc, FancyArrowPatch, ArrowStyle, PathPatch
 from matplotlib.collections import LineCollection, PatchCollection
-
-# everything here should be scaled with linewidth (lw)
 
 class SchemeBase:
     
     def __init__(self, ax, lw=None) -> None:
         self.ax = ax
+        self.x_len = ax.get_xlim()[1] - ax.get_xlim()[0]
+        self.y_len = ax.get_ylim()[1] - ax.get_ylim()[0]
+        self.max_len = max(self.x_len, self.y_len)
         if(lw is None):
             self.lw = 0.4
         else:
@@ -38,6 +40,10 @@ class SchemeBase:
                 style = ArrowStyle('<|-', head_length=6*self.lw, head_width=2*self.lw)
             case "latex-latex":
                 style = ArrowStyle('<|-|>', head_length=6*self.lw, head_width=2*self.lw)
+            case "-bar":
+                style = ArrowStyle('|-|', widthA=0, widthB=4*self.lw)
+            case "bar-":
+                style = ArrowStyle('|-|', widthA=4*self.lw, widthB=0)
             case "bar-bar":
                 style = ArrowStyle('|-|', widthA=4*self.lw, widthB=4*self.lw)
             case _:
@@ -48,34 +54,38 @@ class SchemeBase:
         arr = FancyArrowPatch(**arrow_props)
         self.ax.add_patch(arr)
     
-    def add_text(self, textx, texty, text, textfc=None, loc=None):
+    def add_text(self, textx, texty, text, textfc=None, loc=None, offset=None):
         '''base function to draw text, a wrapper of ax.text
         '''
+        
         textloc = None
         if(textfc is None):
             textfc = 'None'
+        
+        if(offset is None):
+            offset = 0.01
             
         match loc:
             case "center":
                 textloc = dict(ha='center', va='center')
             case "upper":
                 textloc = dict(ha='center', va='bottom')
-                texty = texty + 2*self.lw
+                texty = texty + offset*self.max_len
             case "lower":
                 textloc = dict(ha='center', va='top')
-                texty = texty - 2*self.lw
+                texty = texty - offset*self.max_len
             case "left":
                 textloc = dict(ha='right', va='center')
-                textx = textx - 2*self.lw
+                textx = textx - offset*self.max_len
             case "right":
                 textloc = dict(ha='left', va='center')
-                textx = textx + 2*self.lw
+                textx = textx + offset*self.max_len
             case _:
                 textloc = dict(ha='center', va='bottom')
         self.ax.text(textx, texty, text, textloc, bbox=dict(fc=textfc, ec='none'))
         
     def add_coord_axis(self, origin=np.array([0, 0]), length=np.array([1, 1]), 
-                       text=['$x$', '$y$']):
+                       text=['$x$', '$y$'], offset=None):
         '''draw coordinates at origin
         '''
         textloc = ["right", "upper"]
@@ -83,15 +93,50 @@ class SchemeBase:
             xyto = origin.copy()
             xyto[i] = xyto[i] + length[i]
             self.add_arrow("-latex", xy=(origin, xyto))
-            self.add_text(xyto[0], xyto[1], text[i], loc=textloc[i])
+            self.add_text(xyto[0], xyto[1], text[i], loc=textloc[i], offset=offset)
             
-    def add_curve(self, verts, **kwargs):
-        '''draw bezier curves passing vertices
+    def add_pathpatch(self, verts, curve=True, closed=False, draw=True, **kwargs):
+        '''base funciton to generate path of lines or curves passing vertices
+        verts: np.array([[x0, y0], ...])
+        if curve=Ture, uses scipy.interpolate to draw a smooth curve, need at least 4 vertices
+        return path
         '''
-        pass
-    
-    def add_polygon():
-        pass
+        if(closed):
+            verts = np.vstack((verts, verts[0]))
+        
+        if(curve):
+            # if curve, do interpolation
+            t = np.arange(np.size(verts, 0))
+            if(np.size(verts, 0) < 3):
+                raise ValueError("At least 4 points are needed to generate curve!")
+            
+            ti = np.linspace(0, t.max(), 10 * t.size)
+            xi = interp1d(t, verts[:, 0], kind="cubic")(ti)
+            yi = interp1d(t, verts[:, 1], kind="cubic")(ti)
+            points = np.vstack((xi, yi)).T
+            codes = [Path.MOVETO] + [Path.LINETO] * (np.size(points, 0) - 1)
+            if(closed):
+                codes[-1] = Path.CLOSEPOLY
+            
+        else:
+            # if line, simply use connect them
+            points = verts
+            codes = [Path.MOVETO] + [Path.LINETO] * (np.size(points, 0) - 1)
+            if(closed):
+                codes[-1] = Path.CLOSEPOLY
+        
+        path = Path(points, codes)
+        if(curve):
+            path = path.interpolated(steps=10)
+        
+        if("lw" not in kwargs):
+            patch = PathPatch(path, lw=self.lw, **kwargs)
+        else:
+            patch = PathPatch(path, **kwargs)
+        
+        if(draw):
+            self.ax.add_patch(patch)
+        return path
     
 class Scheme(SchemeBase):
     
@@ -187,13 +232,36 @@ class Scheme(SchemeBase):
                                                                 angle=angle,
                                                                 length=length)])
         
-    def add_dist_bc(self, bnd, bc, type="tail", scale=1, interval=1, text=None, textloc=None):
+    def add_point_bc(self, bnd, bc, type="tail", scale=1, text=None, textloc=None):
+        '''base function to annotate point boundary condition: |-->
+        bnd: boundary node, np.array([x1, y1])
+        bc: boundary condition, np.array([dx1, dy1])
+        type: "tail": arrow tail at bnd, "head": arrow head at bnd
+        scale: scale the length of the arrow
+        '''
+        if(type == "tail"):
+            scale = scale
+            bnd_s = bnd + scale*bc
+            self.add_arrow("-latex", xy=(bnd, bnd_s))
+            self.add_arrow("bar-", xy=(bnd, bnd_s))
+        else:
+            scale = -scale
+            bnd_s = bnd + scale*bc
+            self.add_arrow("latex-", xy=(bnd, bnd_s))
+            self.add_arrow("-bar", xy=(bnd, bnd_s))
+        
+        if(text is not None):
+            self.add_text((bnd[0] + bnd_s[0])/2, (bnd[1] + bnd_s[1])/2, 
+                          text=text, loc=textloc)
+        
+    def add_dist_bc(self, bnd, bc, type="tail", scale=1, interval=1, 
+                    text=None, textloc=None, offset=None):
         '''base function to annotate distributed boundary condition:
         ---------
         | | | | |
         v v v v v
-        bnd: boundary nodes, dim: n_nodes*2, [[x1, y1], ..., [xn, yn]]
-        bc: boundary conditions, dim: n_nodes*2, [[dx1, dy1], ..., [dxn, dyn]]
+        bnd: boundary nodes, dim: n_nodes*2, np.array([[x1, y1], ..., [xn, yn]])
+        bc: boundary conditions, dim: n_nodes*2, np.array([[dx1, dy1], ..., [dxn, dyn]])
         type: "tail": arrow tail at bnd, "head": arrow head at bnd
         scale: scale the length of the arrow
         interval: interval between arrows
@@ -214,7 +282,8 @@ class Scheme(SchemeBase):
         self.ax.plot(bnd_s[::interval, 0], bnd_s[::interval, 1], 'k')
         
         if(text is not None):
-            self.add_text(bnd_s[n_nodes//2, 0], bnd_s[n_nodes//2, 1], text=text, loc=textloc)
+            self.add_text(bnd_s[n_nodes//2, 0], bnd_s[n_nodes//2, 1], 
+                          text=text, loc=textloc, offset=offset)
             
     
     def add_normal_bc():
