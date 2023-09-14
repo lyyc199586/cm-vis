@@ -84,7 +84,7 @@ class SchemeBase:
                 textloc = dict(ha='center', va='bottom')
         self.ax.text(textx, texty, text, textloc, bbox=dict(fc=textfc, ec='none'))
         
-    def add_coord_axis(self, origin=np.array([0, 0]), length=np.array([1, 1]), 
+    def add_coord_axis(self, origin=np.array([0.0, 0.0]), length=np.array([1.0, 1.0]), 
                        text=['$x$', '$y$'], offset=None):
         '''draw coordinates at origin
         '''
@@ -202,6 +202,7 @@ class Scheme(SchemeBase):
         arc_path = arc.get_patch_transform().transform_path(arc.get_path())
         
         # generate arrow based on arc_path
+        self.add_arrow("bar-bar", path=arc_path)
         match arrowloc:
             case "stop":
                 self.add_arrow("-latex", path=arc_path)
