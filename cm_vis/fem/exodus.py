@@ -15,7 +15,7 @@ class Exodus:
 
     def get_time(self) -> np.ndarray:
         """get time series"""
-        model = netCDF4.Dataset(self.dir)
+        model = netCDF4.MFDataset(self.dir)
         time = np.ma.getdata(model.variables["time_whole"][:])
 
         model.close()
@@ -36,7 +36,7 @@ class Exodus:
 
     def get_mesh(self, block_id=0) -> (np.ndarray, np.ndarray):
         """sometimes we only want to read mesh info"""
-        model = netCDF4.Dataset(self.dir)
+        model = netCDF4.MFDataset(self.dir)
 
         # get model info
         dim = model.dimensions["num_dim"].size
@@ -53,12 +53,14 @@ class Exodus:
             verts = np.column_stack([x_coord, y_coord, z_coord])
 
         # get connect matrix
-        faces = np.ma.getdata(model.variables[f"connect{block_id + 1}"][:]) - 1  # index start from 0
+        faces = (
+            np.ma.getdata(model.variables[f"connect{block_id + 1}"][:]) - 1
+        )  # index start from 0
 
         model.close()
         return (verts, faces)
 
-    def get_var(self, var_name, block_id=0, timestep=0) -> np.ndarray:
+    def get_var(self, var_name, timestep=0) -> np.ndarray:
         """get variable with name and timestep"""
 
         def get_var_names(model, key="name_nod_var"):
@@ -71,7 +73,7 @@ class Exodus:
 
             return var_names
 
-        model = netCDF4.Dataset(self.dir)
+        model = netCDF4.MFDataset(self.dir)
         nod_var_names = get_var_names(model, "name_nod_var")
         elem_var_names = get_var_names(model, "name_elem_var")
 
