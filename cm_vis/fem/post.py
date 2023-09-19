@@ -17,9 +17,9 @@ class FEMPlotter:
         if ax is None:
             fig, ax = plt.subplots()
         self.ax = ax
-        # self.ax.set(aspect="equal")
+        self.ax.set(aspect="equal")
 
-    def plot(self, var=None, block_id=None, clim=None, cmap=None, **kwargs):
+    def plot(self, var=None, tstep=0, block_id=None, clim=None, cmap=None, **kwargs):
         """block_id: if None, plot over all blocks, return (ax, [p1, p2, ..]),
         otherwise return plot only block at block_id, return (ax, p)
         var: variable to plot, numpy ndarray"
@@ -31,9 +31,11 @@ class FEMPlotter:
             tris = [quad[:3], [quad[0], quad[2], quad[3]]]
             return tris
 
-        def plot_block(self, block_id=None, var=None, clim=None, cmap=None, **kwargs):
+        def plot_block(
+            self, block_id=None, tstep=0, var=None, clim=None, cmap=None, **kwargs
+        ):
             """this is used to plot at a single block"""
-            verts, faces = self.model.get_mesh(block_id=block_id)
+            verts, faces = self.model.get_mesh(block_id=block_id, tstep=tstep)
             n_nodes = np.size(verts, 0)
             n_elements = np.size(faces, 0)
             n_nodes_of_element = np.size(faces, 1)
@@ -101,16 +103,16 @@ class FEMPlotter:
             p_lists = []
             block_nums, _ = self.model.get_block_info()
             if block_nums == 1:
-                _, p = plot_block(self, 0, var, clim, cmap, **kwargs)
+                _, p = plot_block(self, 0, tstep, var, clim, cmap, **kwargs)
                 self.ax.autoscale(enable=True)
                 return (self.ax, p)
             else:
                 for i in range(block_nums):
-                    _, p = plot_block(self, i, var, clim, cmap, **kwargs)
+                    _, p = plot_block(self, i, tstep, var, clim, cmap, **kwargs)
                     p_lists.append(p)
                 self.ax.autoscale(enable=True)
                 return (self.ax, p_lists)
         else:
-            _, p = plot_block(self, block_id, var, clim, cmap, **kwargs)
+            _, p = plot_block(self, block_id, tstep, var, clim, cmap, **kwargs)
             self.ax.autoscale(enable=True)
             return (self.ax, p)
