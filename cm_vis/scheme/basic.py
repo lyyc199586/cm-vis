@@ -18,7 +18,7 @@ class SchemeBase:
         else:
             self.lw = lw
     
-    def add_arrow(self, type, xy=None, path=None):
+    def add_arrow(self, type, xy=None, path=None, fc=None):
         '''base function to draw straight arraw:
         type: customized matplotlib arrow type,
         use posA=xy[0], posB=xy[1] for straight path, or path=path for any path
@@ -26,12 +26,15 @@ class SchemeBase:
         if(xy is None and path is None ):
             raise ValueError("Provide either xy=(xyfrom, xyto) or path!")
         
+        if(fc is None):
+            fc = 'k'
+        
         if(path is None):
             arrow_props = dict(posA=xy[0], posB=xy[1], shrinkA=0, shrinkB=0, lw=self.lw,
-                           joinstyle="miter", capstyle="butt", fc='k')
+                           joinstyle="miter", capstyle="butt", fc=fc, ec=fc)
         else:
             arrow_props = dict(path=path, shrinkA=0, shrinkB=0, lw=self.lw,
-                           joinstyle="miter", capstyle="butt", fc='k')
+                           joinstyle="miter", capstyle="butt", fc=fc, ec=fc)
         
         match type:
             case "-latex":
@@ -54,13 +57,16 @@ class SchemeBase:
         arr = FancyArrowPatch(**arrow_props)
         self.ax.add_patch(arr)
     
-    def add_text(self, textx, texty, text, textfc=None, loc=None, offset=None):
+    def add_text(self, textx, texty, text, textc=None, boxfc=None, loc=None, offset=None):
         '''base function to draw text, a wrapper of ax.text
         '''
         
         textloc = None
-        if(textfc is None):
-            textfc = 'None'
+        if(boxfc is None):
+            boxfc = 'None'
+            
+        if(textc is None):
+            textc = 'k'
         
         if(offset is None):
             offset = 0.01
@@ -82,10 +88,11 @@ class SchemeBase:
                 textx = textx + offset*self.max_len
             case _:
                 textloc = dict(ha='center', va='bottom')
-        self.ax.text(textx, texty, text, textloc, bbox=dict(fc=textfc, ec='none'))
+        self.ax.text(textx, texty, text, textloc, 
+                     bbox=dict(fc=boxfc, ec='none'), color=textc)
         
     def add_coord_axis(self, origin=np.array([0.0, 0.0]), length=np.array([1.0, 1.0]), 
-                       text=['$x$', '$y$'], offset=None):
+                       text=['$x$', '$y$'], textc=None, offset=None):
         '''draw coordinates at origin
         '''
         textloc = ["right", "upper"]
@@ -93,7 +100,8 @@ class SchemeBase:
             xyto = origin.copy()
             xyto[i] = xyto[i] + length[i]
             self.add_arrow("-latex", xy=(origin, xyto))
-            self.add_text(xyto[0], xyto[1], text[i], loc=textloc[i], offset=offset)
+            self.add_text(xyto[0], xyto[1], text[i], loc=textloc[i], 
+                          textc=textc, offset=offset)
             
     def add_pathpatch(self, verts, curve=True, closed=False, draw=True, **kwargs):
         '''base funciton to generate path of lines or curves passing vertices
@@ -140,7 +148,7 @@ class SchemeBase:
     
 class Scheme(SchemeBase):
     
-    def dim_dist(self, xyfrom, xyto, text=None, textfc=None, textloc=None, offset=None):
+    def dim_dist(self, xyfrom, xyto, text=None, arrowfc=None, textc=None, boxfc=None, textloc=None, offset=None):
         '''annotate dimension with text in the center:
         |<|--- text ---|>|, if text is None, use the distance
         ax: matplotlib axes object
@@ -151,19 +159,20 @@ class Scheme(SchemeBase):
             dist = np.sqrt((xyfrom[0] - xyto[0])**2 + (xyfrom[1] - xyto[1])**2)
             text = str(np.round(dist, 2))
 
-        if(textfc is None):
-            textfc = 'None'
+        if(boxfc is None):
+            boxfc = 'None'
 
         # add arrows
-        self.add_arrow("latex-latex", xy=(xyfrom, xyto))
-        self.add_arrow("bar-bar", xy=(xyfrom, xyto))
+        self.add_arrow("latex-latex", xy=(xyfrom, xyto), fc=arrowfc)
+        self.add_arrow("bar-bar", xy=(xyfrom, xyto), fc=arrowfc)
         
         # add text
         textx = (xyfrom[0] + xyto[0])/2
         texty = (xyfrom[1] + xyto[1])/2
-        self.add_text(textx, texty, text, textfc, loc=textloc, offset=offset)
+        self.add_text(textx, texty, text, textc=textc, boxfc=boxfc, loc=textloc, offset=offset)
 
-    def dim_radius(self, center, radius, angle=45, text=None, textfc=None, textloc=None, offset=None):
+    def dim_radius(self, center, radius, angle=45, arrowfc=None, text=None, 
+                   textc=None, boxfc=None, textloc=None, offset=None):
         '''annotate radius for arc:
         --text--|>, if text is None, use str(radius)
         '''
@@ -172,11 +181,11 @@ class Scheme(SchemeBase):
 
         xyto = [center[0] + radius*np.cos(angle/180*np.pi), 
                 center[1] + radius*np.sin(angle/180*np.pi)]
-        self.add_arrow("-latex", xy=(center, xyto))
-        self.add_text(xyto[0]/2, xyto[1]/2, text, textfc, loc=textloc, offset=offset)
+        self.add_arrow("-latex", xy=(center, xyto), fc=arrowfc)
+        self.add_text(xyto[0]/2, xyto[1]/2, text, textc, boxfc, loc=textloc, offset=offset)
         
     def dim_angle(self, radius, start_deg, stop_deg, xyfrom=None, center=None, 
-                  arrowloc="stop", text=None, textloc=None, offset=None):
+                  arrowloc="stop", arrowfc=None, text=None, textc=None, textloc=None, offset=None):
         '''annotate angle for arc: just like \draw(x, y) arc (start_deg:stop_deg:radius)
         |<--text-->|, if text is None, use str(abs(stop_deg - start_deg))
         provide either xyfrom=[x0, y0] or center=[x0, y0]
@@ -202,23 +211,23 @@ class Scheme(SchemeBase):
         arc_path = arc.get_patch_transform().transform_path(arc.get_path())
         
         # generate arrow based on arc_path
-        self.add_arrow("bar-bar", path=arc_path)
+        self.add_arrow("bar-bar", path=arc_path, fc=arrowfc)
         match arrowloc:
             case "stop":
-                self.add_arrow("-latex", path=arc_path)
+                self.add_arrow("-latex", path=arc_path, fc=arrowfc)
             case "start":
-                self.add_arrow("latex-", path=arc_path)
+                self.add_arrow("latex-", path=arc_path, fc=arrowfc)
             case "both":
-                self.add_arrow("latex-latex", path=arc_path)
+                self.add_arrow("latex-latex", path=arc_path, fc=arrowfc)
             case _:
-                self.add_arrow(path=arc_path)
+                self.add_arrow(path=arc_path, fc=arrowfc)
         
         # add text
         textxy = [center[0] + radius*np.cos((start + stop)/2), 
                   center[1] + radius*np.sin((start + stop)/2)]
-        self.add_text(textxy[0], textxy[1], text, loc=textloc, offset=offset)
+        self.add_text(textxy[0], textxy[1], text, textc, loc=textloc, offset=offset)
     
-    def add_fix_bc(self, bnd, scale=1, spacing=1, angle=45):
+    def add_fix_bc(self, bnd, scale=1, spacing=1, angle=45, **kwargs):
         '''annotate fix boundary with short inclined lines: ///////
         use matplotlib.patheffects.withTickedStroke
         bnd: boundary nodes, dim: n_nodes*2, [[x1, y1], ..., [xn, yn]]
@@ -231,9 +240,10 @@ class Scheme(SchemeBase):
         self.ax.plot(bnd[:, 0], bnd[:, 1], c='k',
                      path_effects=[patheffects.withTickedStroke(spacing=spacing,
                                                                 angle=angle,
-                                                                length=length)])
+                                                                length=length)], **kwargs)
         
-    def add_point_bc(self, bnd, bc, type="tail", scale=1, text=None, textloc=None, offset=None):
+    def add_point_bc(self, bnd, bc, type="tail", scale=1, arrowfc=None,
+                     text=None, textc=None, textloc=None, offset=None):
         '''base function to annotate point boundary condition: |-->
         bnd: boundary node, np.array([x1, y1])
         bc: boundary condition, np.array([dx1, dy1])
@@ -243,20 +253,20 @@ class Scheme(SchemeBase):
         if(type == "tail"):
             scale = scale
             bnd_s = bnd + scale*bc
-            self.add_arrow("-latex", xy=(bnd, bnd_s))
-            self.add_arrow("bar-", xy=(bnd, bnd_s))
+            self.add_arrow("-latex", xy=(bnd, bnd_s), fc=arrowfc)
+            self.add_arrow("bar-", xy=(bnd, bnd_s), fc=arrowfc)
         else:
             scale = -scale
             bnd_s = bnd + scale*bc
-            self.add_arrow("latex-", xy=(bnd, bnd_s))
-            self.add_arrow("-bar", xy=(bnd, bnd_s))
+            self.add_arrow("latex-", xy=(bnd, bnd_s), fc=arrowfc)
+            self.add_arrow("-bar", xy=(bnd, bnd_s), fc=arrowfc)
         
         if(text is not None):
             self.add_text((bnd[0] + bnd_s[0])/2, (bnd[1] + bnd_s[1])/2, 
-                          text=text, loc=textloc, offset=offset)
+                          text=text, textc=textc, loc=textloc, offset=offset)
         
-    def add_dist_bc(self, bnd, bc, type="tail", scale=1, interval=1, 
-                    text=None, textloc=None, offset=None):
+    def add_dist_bc(self, bnd, bc, type="tail", scale=1, interval=1, arrowfc=None,
+                    text=None, textc=None, textloc=None, offset=None, **kwargs):
         '''base function to annotate distributed boundary condition:
         ---------
         | | | | |
@@ -278,13 +288,13 @@ class Scheme(SchemeBase):
         bnd_s = np.vstack([bnd[:, 0] + scale*bc[:, 0], bnd[:, 1] + scale*bc[:, 1]]).T
             
         for i in range(0, n_nodes, interval):
-            self.add_arrow(arr_type, xy=(bnd[i], bnd_s[i]))
+            self.add_arrow(arr_type, xy=(bnd[i], bnd_s[i]), fc=arrowfc)
         
-        self.ax.plot(bnd_s[::interval, 0], bnd_s[::interval, 1], 'k')
+        self.ax.plot(bnd_s[::interval, 0], bnd_s[::interval, 1], **kwargs)
         
         if(text is not None):
             self.add_text(bnd_s[n_nodes//2, 0], bnd_s[n_nodes//2, 1], 
-                          text=text, loc=textloc, offset=offset)
+                          text=text, textc=textc, loc=textloc, offset=offset)
             
     
     def add_normal_bc():
