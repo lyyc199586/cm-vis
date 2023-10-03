@@ -5,7 +5,7 @@
 
 import re
 import numpy as np
-from exodus import Exodus
+from cm_vis.fem.exodus import Exodus
 
 
 def dist_search(model: Exodus, initial_tip, d_name="d", d_c=0.95, tstep=0, block_id=0):
@@ -48,6 +48,8 @@ def crack_tip_tracking(model: Exodus, initial_tip, interval=1, d_name="d", d_c=0
     for i in range(0, np.size(time), interval):
         if(i==0):
             crack_tip_list = np.hstack((time[0], initial_tip, [0]))
+            print("Current crack tip info:\n Time, coord_x, coord_y, velocity")
+            print(crack_tip_list)
         else:
             cur_tip_loc = dist_search(model, initial_tip, d_name, d_c, i)
     
@@ -59,6 +61,7 @@ def crack_tip_tracking(model: Exodus, initial_tip, interval=1, d_name="d", d_c=0
                 old_tip_x, old_tip_y = crack_tip_list[i-1][1:3]
             tip_vel = np.sqrt((cur_tip_loc[0] - old_tip_x)**2 + (cur_tip_loc[1] - old_tip_y)**2)/dt
             cur_tip_info = np.hstack(([time[i]], cur_tip_loc, [tip_vel]))
+            print(cur_tip_info)
             crack_tip_list = np.vstack((crack_tip_list, cur_tip_info))
     
     # save to csv if required
