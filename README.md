@@ -12,19 +12,20 @@ pip install git+https://github.com/lyyc199586/cm-vis.git
 * scipy
 * scikit-image
 * matplotlib
+* s3dlib
 * netCDF4
 
 ## Gallery
 
 ### FEM: schematic
 > plot schematics of simulation setups
-> see `./apps/brz_scheme.py`
-
-![brz_scheme](out/brz_contact_scheme.png)
+> see more in `./examples`
+> 
+![crack_scheme](out/crack_scheme.png) ![pf_scheme](out/pf_scheme.png)
 
 ### FEM: results
 > plot mesh, nodal variable and elemental variable on tri and quad mesh from FEM result files.
-> see `./apps/brz_post.py`
+> see more in `./examples`
 
 ![brz_post](./out/post_brz.png)
 

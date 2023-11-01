@@ -9,6 +9,7 @@ setup(
       'scipy',
       'scikit-image',
       'matplotlib',
+      's3dlib',
       'netCDF4',
     ],
 )

@@ -8,15 +8,12 @@ from matplotlib.collections import LineCollection, PatchCollection
 
 class SchemeBase:
     
-    def __init__(self, ax, lw=None) -> None:
+    def __init__(self, ax, lw=0.4) -> None:
         self.ax = ax
         self.x_len = ax.get_xlim()[1] - ax.get_xlim()[0]
         self.y_len = ax.get_ylim()[1] - ax.get_ylim()[0]
         self.max_len = max(self.x_len, self.y_len)
-        if(lw is None):
-            self.lw = 0.4
-        else:
-            self.lw = lw
+        self.lw = lw
     
     def add_arrow(self, type, xy=None, path=None, fc=None):
         '''base function to draw straight arraw:
@@ -290,7 +287,7 @@ class Scheme(SchemeBase):
         for i in range(0, n_nodes, interval):
             self.add_arrow(arr_type, xy=(bnd[i], bnd_s[i]), fc=arrowfc)
         
-        self.ax.plot(bnd_s[::interval, 0], bnd_s[::interval, 1], **kwargs)
+        self.ax.plot(bnd_s[::interval, 0], bnd_s[::interval, 1], 'k', **kwargs)
         
         if(text is not None):
             self.add_text(bnd_s[n_nodes//2, 0], bnd_s[n_nodes//2, 1], 

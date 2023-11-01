@@ -3,6 +3,7 @@
 import re
 import numpy as np
 import matplotlib.pyplot as plt
+import s3dlib.surface as s3d
 from scipy.ndimage import gaussian_filter
 from skimage.measure import marching_cubes, find_contours
 
@@ -68,17 +69,13 @@ class SurfacePlotter:
                 ax.set_xlabel("s11")
                 ax.set_ylabel("s22")
                 ax.set_zlabel("s33")
+                ax.set_proj_type("ortho")
 
         if dim == 2:
             for contour in contours:
                 ax.plot(contour[:, 0] * dx + xmin, contour[:, 1] * dx + xmin, **kwargs)
         else:
-            ax.plot_trisurf(
-                verts[:, 0] * dx + xmin,
-                verts[:, 1] * dx + xmin,
-                verts[:, 2] * dx + xmin,
-                triangles=faces,
-                **kwargs,
-            )
+            surface = s3d.Surface3DCollection(verts, faces, **kwargs)
+            ax.add_collection3d(surface)
 
         return ax
