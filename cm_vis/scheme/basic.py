@@ -16,9 +16,11 @@ class SchemeBase:
         self.lw = lw
     
     def add_arrow(self, type, xy=None, path=None, fc=None):
-        '''base function to draw straight arraw:
+        '''base function to draw arraw:
         type: customized matplotlib arrow type,
-        use posA=xy[0], posB=xy[1] for straight path, or path=path for any path
+        xy = [[x0, y0], [x1, y1]]
+            :use posA=xy[0], posB=xy[1] for straight path, or path=path for any path,
+        fc: facecolor of arrow
         '''
         if(xy is None and path is None ):
             raise ValueError("Provide either xy=(xyfrom, xyto) or path!")
@@ -88,13 +90,13 @@ class SchemeBase:
         self.ax.text(textx, texty, text, textloc, 
                      bbox=dict(fc=boxfc, ec='none'), color=textc)
         
-    def add_coord_axis(self, origin=np.array([0.0, 0.0]), length=np.array([1.0, 1.0]), 
+    def add_coord_axis(self, origin=[0.0, 0.0], length=[1.0, 1.0], 
                        text=['$x$', '$y$'], textc=None, offset=None):
-        '''draw coordinates at origin
+        '''draw coordinates at origin (or any location)
         '''
         textloc = ["right", "upper"]
         for i in range(np.size(length)):
-            xyto = origin.copy()
+            xyto = np.array(origin).copy()
             xyto[i] = xyto[i] + length[i]
             self.add_arrow("-latex", xy=(origin, xyto))
             self.add_text(xyto[0], xyto[1], text[i], loc=textloc[i], 
