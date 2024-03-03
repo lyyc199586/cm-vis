@@ -1,23 +1,37 @@
 # generate strength surface data of various types
-
+import os
+import sys
 import numpy as np
-
+import matplotlib.pyplot as plt
+from skimage.measure import find_contours
 
 class StrengthSurface:
     """generate strength surface data of certain types"""
 
-    def __init__(self, type, props, srange, data_dir) -> None:
-        """type: strength surface type
-        props: material properties
+    def __init__(self, mname:str, type:str, props:list, srange:list[float]) -> None:
+        """
+        mname: material name
+        type: strength surface type
+        props: material properties needed
         srange: [xmin, xmax, num]
-        data_dir: path to store data.npy"""
-
+        type                props
+        'VMS'               [sigma_y]
+        'DRUCKER'           [sigma_ts, sigma_cs]
+        'ISOTROPIC'         [sigma_ts, mu, K]
+        'VOLDEV'            [sigma_ts, mu, K]
+        'SPECTRAL'          [sigma_ts, mu, K]
+        'KLBFNUC'           [sigma_ts, sigma_cs, mu, K, Gc, ell, delta]
+        'KLRNUC'            [sigma_ts, sigma_cs, mu, K, Gc, ell, delta]
+        'LDLNUC'            [sigma_ts, sigma_cs, mu, K, Gc, ell, h]
+        """
+        self.mname = mname
         self.type = type
         self.props = props
         self.range = srange
-        self.dir = data_dir
 
-    def gen(self):
+    def gen(self, data_dir=None):
+        """ if data_dir is not None, store data.npy to data_dir as:
+                npy_data: './data_dir/ss_{mname}_{type}_props{props}_srange{srange}.npy' """
         def vms(s1, s2, s3, sigma_y):
             """calculate Von Mises yield surface
             props : [sigma_y]"""
@@ -61,7 +75,7 @@ class StrengthSurface:
 
             return f
         
-        def spectral(s1, s2, s3, sts, lbda, mu, k, nu):
+        def spectral(s1, s2, s3, sts, mu, k):
             """Strength surface of phase field model with spectral split (d=0)
             from Lorenzis's IJF paper (2021)
             props: [sigma_ts, lbda, mu, K, nu]
@@ -69,6 +83,8 @@ class StrengthSurface:
             this calculation with ndarrays...
             """
             E = 9 * mu * k / (mu + 3 * k)
+            lbda = k - 2/3 * mu
+            nu = (3*k - 2*mu) / 2 / (3*k+mu)
             
             def calc(s11, s22, s33, sts, lbda, mu, k, nu) -> float:
                 s3, s2, s1 = np.sort(np.array([s11, s22, s33]))
@@ -127,10 +143,11 @@ class StrengthSurface:
             
             return f
         
-        def klrnuc(s1, s2, s3, sts, scs, mu, lbda, k, gc, ell, delta):
+        def klrnuc(s1, s2, s3, sts, scs, mu, k, gc, ell, delta):
             """calculate the strength surface of the nucleation phase field model introduced
             by Kumar et al. (2022)
-            props: [sigma_ts, sigma_cs, mu, K, Gc, ell, delta]"""
+            props: [sigma_ts, sigma_cs, mu, lbda, K, Gc, ell, delta]"""
+            lbda = k - 2/3 * mu
             I1 = s1 + s2 + s3
             J2 = 1 / 6 * ((s1 - s2) ** 2 + (s2 - s3) ** 2 + (s3 - s1) ** 2)
             
@@ -142,6 +159,41 @@ class StrengthSurface:
             ce = b2 * np.sqrt(J2) + b1 * I1 + b0 + (1 - np.sign(I1))*(J2/2/mu + I1*I1/(6*(3*lbda + 2*mu)));
             f = J2 / mu + I1*I1 / (9 * k) - ce - 3 / 8 * gc / ell
             
+            return f
+        
+        def ldlnuc(s1, s2, s3, sts, scs, mu, k, gc, ell, h):
+            """calculate the strength surface of the nucleation phase field model introduced
+            by Larsen et al. (2024)
+            props: [sigma_ts, sigma_cs, mu, K, Gc, ell, h (use h-correction if provided)]"""
+            E = 9 * mu * k / (mu + 3 * k)
+            lbda = k - 2/3 * mu
+            shs = 2/3*sts*scs/(scs - sts)
+            
+            I1 = s1 + s2 + s3
+            J2 = 1 / 6 * ((s1 - s2) ** 2 + (s2 - s3) ** 2 + (s3 - s1) ** 2)
+            
+            W_ts = sts**2/2/E 
+            W_hs = shs**2/2/k
+            
+            if(h != 0):
+                delta = (
+                    pow(1 + 3.0 / 8.0 * h / ell, -2) * (sts + 3 * (1 + np.sqrt(3.0)) * shs)
+                    / (3 + 10 * np.sqrt(3.0)) / shs * 3 / 16 * (gc / W_ts / ell)
+                    + pow(1 + 3.0 / 8.0 * h / ell, -1) * 2 / 5
+                )
+            else:
+                delta = (sts + 8.15 * shs) / 23.25 / shs * 3 / 16 * gc / W_ts / ell + 3 / 8
+                
+            a1 = 1 / shs * delta * gc / 8 / ell - 2 / 3 * W_hs / shs
+            a2 = (
+                np.sqrt(3) * (3 * shs - sts) / shs / sts * delta * gc / 8 / ell
+                + 2 / np.sqrt(3) * W_hs / shs
+                - 2 * np.sqrt(3) * W_ts / sts
+            )
+            
+            ce = a2 * np.sqrt(J2) + a1 * I1 - (1 - np.sign(I1)) * (J2/2/mu + I1*I1/(6*(3*lbda + 2*mu)))
+            
+            f = J2 / mu + I1*I1 / (9 * k) + ce - 3 / 8 * gc * delta / ell
             return f
 
         # generate stress space
@@ -171,8 +223,24 @@ class StrengthSurface:
                 sigma_ts, sigma_cs, mu, k, gc, ell, delta = self.props
                 f = klbfnuc(s1, s2, s3, sigma_ts, sigma_cs, mu, k, gc, ell, delta)
             case "KLRNUC":
-                sigma_ts, sigma_cs, mu, lbda, k, gc, ell, delta = self.props
-                f = klrnuc(s1, s2, s3, sigma_ts, sigma_cs, mu, lbda, k, gc, ell, delta)
-                
+                sigma_ts, sigma_cs, mu, k, gc, ell, delta = self.props
+                f = klrnuc(s1, s2, s3, sigma_ts, sigma_cs, mu, k, gc, ell, delta)
+            case "LDLNUC":
+                sigma_ts, sigma_cs, mu, k, gc, ell, h = self.props
+                f = ldlnuc(s1, s2, s3, sigma_ts, sigma_cs, mu, k, gc, ell, h)
+        
+        # plot 2D contours for illustration
+        fig, ax = plt.subplots()
+        ax.set(aspect="equal", xlabel="s1", ylabel="s2", title=f"{self.mname}_{self.type}")
+        xmin, xmax, num = self.range
+        dx = (xmax - xmin) / (num - 1)
+        z_index = int((0 - xmin) / dx)
+        contours = find_contours(f[:, :, z_index], 0)
+        for contour in contours:
+            ax.plot(contour[:, 0] * dx + xmin, contour[:, 1] * dx + xmin)
+        
         # save data as data_dir.npy
-        np.save(self.dir, f)
+        data_file = f'/ss_{self.mname}_{self.type}_props{self.props}_srange{self.range}.npy'
+        if (data_dir is not None):
+            np.save(data_dir + data_file, f)
+            print(f"Saved to: {data_dir + data_file}")

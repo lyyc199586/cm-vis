@@ -15,13 +15,17 @@ class SurfacePlotter:
         """data_dir: path to data.npy"""
         self.dir = data_dir
 
-    def plot(self, dim: int, ax=None, save: bool = False, **kwargs):
-        """return ax"""
+    def plot(self, dim: int, ax=None, save: bool=False, norm: float=None, **kwargs):
+        """return ax
+        dim: 2 or 3
+        save: True to save to csv
+        norm: normalize by s1/norm, s2/norm, s3/norm"""
         def get_srange(data_dir):
-            pattern = r"srange\[(-?\d+(?:,\s*-?\d+)*)\]"
+            # pattern = r"srange\[(-?\d+(?:,\s*-?\d+)*)\]"
+            pattern = r"srange\[((?:-?\d+(?:\.\d+)?(?:,\s*)?)+)\]"
             matches = re.findall(pattern, data_dir)
             if matches:
-                srange = [int(val) for val in matches[0].split(",")]
+                srange = [float(val) for val in matches[0].split(",")]
             else:
                 print("srange not found or wrong format!")
                 srange = -1
@@ -73,7 +77,10 @@ class SurfacePlotter:
 
         if dim == 2:
             for contour in contours:
-                ax.plot(contour[:, 0] * dx + xmin, contour[:, 1] * dx + xmin, **kwargs)
+                if(norm is not None):
+                    ax.plot((contour[:, 0] * dx + xmin)/norm, (contour[:, 1] * dx + xmin)/norm, **kwargs)
+                else:
+                    ax.plot(contour[:, 0] * dx + xmin, contour[:, 1] * dx + xmin, **kwargs)
         else:
             surface = s3d.Surface3DCollection(verts, faces, **kwargs)
             ax.add_collection3d(surface)
