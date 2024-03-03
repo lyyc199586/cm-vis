@@ -3,7 +3,7 @@
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-import s3dlib.surface as s3d
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.ndimage import gaussian_filter
 from skimage.measure import marching_cubes, find_contours
 
@@ -15,13 +15,13 @@ class SurfacePlotter:
         """data_dir: path to data.npy"""
         self.dir = data_dir
 
-    def plot(self, dim: int, ax=None, save: bool=False, norm: float=None, **kwargs):
+    def plot(self, dim: int, ax=None, save: bool = False, norm: float = None, **kwargs):
         """return ax
         dim: 2 or 3
         save: True to save to csv
         norm: normalize by s1/norm, s2/norm, s3/norm"""
+
         def get_srange(data_dir):
-            # pattern = r"srange\[(-?\d+(?:,\s*-?\d+)*)\]"
             pattern = r"srange\[((?:-?\d+(?:\.\d+)?(?:,\s*)?)+)\]"
             matches = re.findall(pattern, data_dir)
             if matches:
@@ -38,9 +38,9 @@ class SurfacePlotter:
         z_index = int((0 - xmin) / dx)  # index at z=0 plane, for 2D plot
         f = np.load(self.dir)
 
-        if(dim == 2):
+        if dim == 2:
             contours = find_contours(f[:, :, z_index], 0)
-            if(save):
+            if save:
                 save_dir = self.dir.replace(".npy", "_2d.csv")
                 x_coord = contours[0][:, 0] * dx + xmin
                 y_coord = contours[0][:, 1] * dx + xmin
@@ -50,7 +50,7 @@ class SurfacePlotter:
         else:
             f_smooth = gaussian_filter(f, sigma=1, order=0)
             verts, faces, _, _ = marching_cubes(f_smooth, level=0)
-            if(save):
+            if save:
                 verts_dir = self.dir.replace(".npy", "_3d_verts.csv")
                 faces_dir = self.dir.replace(".npy", "_3d_faces.csv")
                 x_coord = verts[:, 0] * dx + xmin
@@ -61,28 +61,57 @@ class SurfacePlotter:
                 np.savetxt(faces_dir, faces, delimiter=",", comments="", fmt="%d")
 
         # plot
-        if(ax is None):
-            if(dim == 2):
+        if ax is None:
+            if dim == 2:
                 fig, ax = plt.subplots()
                 ax.set_aspect("equal")
-                ax.set_xlabel("s11")
-                ax.set_ylabel("s22")
+                if norm is not None:
+                    ax.set_xlabel("s11/norm")
+                    ax.set_ylabel("s22/norm")
+                else:
+                    ax.set_xlabel("s11")
+                    ax.set_ylabel("s22")
             else:
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection="3d")
-                ax.set_xlabel("s11")
-                ax.set_ylabel("s22")
-                ax.set_zlabel("s33")
                 ax.set_proj_type("ortho")
+                if norm is not None:
+                    ax.set_xlabel("s11/norm")
+                    ax.set_ylabel("s22/norm")
+                    ax.set_zlabel("s33/norm")
+                else:
+                    ax.set_xlabel("s11")
+                    ax.set_ylabel("s22")
+                    ax.set_zlabel("s33")
 
         if dim == 2:
             for contour in contours:
-                if(norm is not None):
-                    ax.plot((contour[:, 0] * dx + xmin)/norm, (contour[:, 1] * dx + xmin)/norm, **kwargs)
+                if norm is not None:
+                    ax.plot(
+                        (contour[:, 0] * dx + xmin) / norm,
+                        (contour[:, 1] * dx + xmin) / norm,
+                        **kwargs
+                    )
                 else:
-                    ax.plot(contour[:, 0] * dx + xmin, contour[:, 1] * dx + xmin, **kwargs)
+                    ax.plot(
+                        contour[:, 0] * dx + xmin, contour[:, 1] * dx + xmin, **kwargs
+                    )
         else:
-            surface = s3d.Surface3DCollection(verts, faces, **kwargs)
-            ax.add_collection3d(surface)
+            if norm is not None:
+                ax.plot_trisurf(
+                    (verts[:, 0]*dx + xmin) / norm,
+                    (verts[:, 1]*dx + xmin) / norm,
+                    (verts[:, 2]*dx + xmin) / norm,
+                    triangles = faces,
+                    **kwargs,
+                )
+            else:
+                ax.plot_trisurf(
+                    verts[:, 0]*dx + xmin,
+                    verts[:, 1]*dx + xmin,
+                    verts[:, 2]*dx + xmin,
+                    triangles = faces,
+                    **kwargs,
+                )
 
         return ax

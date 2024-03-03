@@ -164,7 +164,7 @@ class StrengthSurface:
         def ldlnuc(s1, s2, s3, sts, scs, mu, k, gc, ell, h):
             """calculate the strength surface of the nucleation phase field model introduced
             by Larsen et al. (2024)
-            props: [sigma_ts, sigma_cs, mu, K, Gc, ell, h (use h-correction if provided)]"""
+            props: [sigma_ts, sigma_cs, mu, K, Gc, ell, h (use h-correction if h is not 0)]"""
             E = 9 * mu * k / (mu + 3 * k)
             lbda = k - 2/3 * mu
             shs = 2/3*sts*scs/(scs - sts)

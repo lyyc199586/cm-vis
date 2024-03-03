@@ -1,10 +1,9 @@
 import numpy as np
 from scipy.interpolate import interp1d
-import matplotlib
 import matplotlib.patheffects as patheffects
 from matplotlib.path import Path
 from matplotlib.patches import Arc, FancyArrowPatch, ArrowStyle, PathPatch
-from matplotlib.collections import LineCollection, PatchCollection
+# from matplotlib.collections import LineCollection, PatchCollection
 
 class SchemeBase:
     
@@ -91,15 +90,15 @@ class SchemeBase:
                      bbox=dict(fc=boxfc, ec='none'), color=textc)
         
     def add_coord_axis(self, origin=[0.0, 0.0], length=[1.0, 1.0], 
-                       text=['$x$', '$y$'], textc=None, offset=None):
+                       text=['$x$', '$y$'], textlocs=["right", "upper"], textc=None, 
+                       arrowfc=None, offset=None):
         '''draw coordinates at origin (or any location)
         '''
-        textloc = ["right", "upper"]
         for i in range(np.size(length)):
-            xyto = np.array(origin).copy()
-            xyto[i] = xyto[i] + length[i]
-            self.add_arrow("-latex", xy=(origin, xyto))
-            self.add_text(xyto[0], xyto[1], text[i], loc=textloc[i], 
+            xyto = origin.copy()
+            xyto[i] = origin[i] + length[i]
+            self.add_arrow("-latex", xy=(origin, xyto), fc=arrowfc)
+            self.add_text(xyto[0], xyto[1], text[i], loc=textlocs[i], 
                           textc=textc, offset=offset)
             
     def add_pathpatch(self, verts, curve=True, closed=False, draw=True, **kwargs):

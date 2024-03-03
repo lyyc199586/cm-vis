@@ -19,12 +19,14 @@ class FEMPlotter:
         self.ax = ax
         self.ax.set(aspect="equal")
 
-    def plot(self, var=None, tstep=0, block_id=None, clim=None, cmap=None, **kwargs):
+    def plot(self, var=None, tstep=0, block_id=None, clim=None, cmap=None, scale=None, **kwargs):
         """block_id: if None, plot over all blocks, return (ax, [p1, p2, ..]),
         otherwise return plot only block at block_id, return (ax, p)
         var: variable to plot, numpy ndarray"
         clim: if None, use [var_max, var_min]
-        cmap: if None, use coolwarm"""
+        cmap: if None, use coolwarm
+        scale = [scale_x, scale_y, scale_z]: scale the coord of the mesh in x,y and z
+        """
 
         def quad_to_tri(quad):
             """convert a quad into 2 traiangles"""
@@ -32,10 +34,14 @@ class FEMPlotter:
             return tris
 
         def plot_block(
-            self, block_id=None, tstep=0, var=None, clim=None, cmap=None, **kwargs
+            self, block_id=None, tstep=0, var=None, clim=None, cmap=None, scale=scale, **kwargs
         ):
             """this is used to plot at a single block"""
             verts, faces = self.model.get_mesh(block_id=block_id, tstep=tstep)
+            if scale is not None:
+                for i in range(np.size(verts, 1)):
+                    verts[:, i] = verts[:, i] * scale[i]
+
             n_nodes = np.size(verts, 0)
             n_elements = np.size(faces, 0)
             n_nodes_of_element = np.size(faces, 1)

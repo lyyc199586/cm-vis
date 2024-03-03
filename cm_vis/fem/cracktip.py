@@ -28,7 +28,8 @@ def dist_search(model: Exodus, initial_tip, d_name="d", d_c=0.95, tstep=0, block
     y = verts[d_ind, 1]
 
     # only search for y>0 for now
-    y = (np.abs(y) + y) / 2
+    # y = (np.abs(y) + y) / 2
+    y = np.abs(y)
     dist = (x - initial_tip[0]) ** 2 + (y - initial_tip[1]) ** 2
     tip_ind = np.where(dist == np.max(dist))
     return np.column_stack((x[tip_ind], y[tip_ind]))[0]

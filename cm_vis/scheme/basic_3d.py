@@ -6,7 +6,7 @@ from matplotlib.patches import Arc, FancyArrowPatch, ArrowStyle, PathPatch
 from basic import SchemeBase
 
 class Arrow3D(FancyArrowPatch):
-    # inspired by https://gist.github.com/WetHat/1d6cd0f7309535311a539b42cccca89c
+    # from https://gist.github.com/WetHat/1d6cd0f7309535311a539b42cccca89c
     def __init__(self, x0, y0, z0, x1, y1, z1, *args, **kwargs):
         super().__init__((0, 0), (0, 0), *args, **kwargs)
         self.xyz = [[x0, y0, z0], [x1, y1, z1]]
@@ -25,14 +25,11 @@ class Arrow3D(FancyArrowPatch):
         return np.min(zs)
         
 
-class Scheme3DBase(SchemeBase):
+class Scheme3DBase():
     
     def __init__(self, ax, lw=0.4):
         self.ax = ax
         self.lw = lw
-        self.x_len = ax.figure.canvas.get_width_height()[0]
-        self.y_len = ax.figure.canvas.get_width_height()[1]
-        self.max_len = max(self.x_len, self.y_len)
         
     def add_arrow3d(self, type, xyz, fc=None):
         '''base function to draw arrow in 3D:
@@ -74,6 +71,7 @@ class Scheme3DBase(SchemeBase):
         '''base function to draw text in 3D, a wrapper of ax.text
         offset=[dx, dy, dz]
         '''
+        #TODO: try to add support for offset like in 2D
         if(boxfc is None):
             boxfc = 'None'
             
@@ -95,7 +93,6 @@ class Scheme3DBase(SchemeBase):
         '''draw coordinates at origin (or any location)
         shift: factor to time with the length for text
         '''
-        textloc = ["right", "upper"]
         for i in range(np.size(length)):
             xyto = origin.copy()
             xyto[i] = xyto[i] + length[i]
