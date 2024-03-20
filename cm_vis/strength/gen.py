@@ -177,23 +177,23 @@ class StrengthSurface:
             
             if(h != 0):
                 delta = (
-                    pow(1 + 3.0 / 8.0 * h / ell, -2) * (sts + 3 * (1 + np.sqrt(3.0)) * shs)
-                    / (3 + 10 * np.sqrt(3.0)) / shs * 3 / 16 * (gc / W_ts / ell)
+                    pow(1 + 3.0 / 8.0 * h / ell, -2) * (sts + (1 + 2 * np.sqrt(3)) * shs)
+                    / (8 + 3 * np.sqrt(3)) / shs * 3 / 16 * (gc / W_ts / ell)
                     + pow(1 + 3.0 / 8.0 * h / ell, -1) * 2 / 5
                 )
             else:
-                delta = (sts + 8.15 * shs) / 23.25 / shs * 3 / 16 * gc / W_ts / ell + 3 / 8
+                delta = (sts + (1 + 2 * np.sqrt(3)) * shs) / (8 + 3 * np.sqrt(3)) / shs * 3 / 16 * gc / W_ts / ell + 3 / 8
                 
-            a1 = 1 / shs * delta * gc / 8 / ell - 2 / 3 * W_hs / shs
+            a1 = - 1 / shs * delta * gc / 8 / ell + 2 / 3 * W_hs / shs
             a2 = (
-                np.sqrt(3) * (3 * shs - sts) / shs / sts * delta * gc / 8 / ell
-                + 2 / np.sqrt(3) * W_hs / shs
-                - 2 * np.sqrt(3) * W_ts / sts
+                - np.sqrt(3) * (3 * shs - sts) / shs / sts * delta * gc / 8 / ell
+                - 2 / np.sqrt(3) * W_hs / shs
+                + 2 * np.sqrt(3) * W_ts / sts
             )
             
-            ce = a2 * np.sqrt(J2) + a1 * I1 - (1 - np.sign(I1)) * (J2/2/mu + I1*I1/(6*(3*lbda + 2*mu)))
+            ce = a2 * np.sqrt(J2) + a1 * I1 + (1 - np.sign(I1)) * (J2/2/mu + I1*I1/(6*(3*lbda + 2*mu)))
             
-            f = J2 / mu + I1*I1 / (9 * k) + ce - 3 / 8 * gc * delta / ell
+            f = J2 / mu + I1*I1 / (9 * k) - ce - 3 / 8 * gc * delta / ell
             return f
 
         # generate stress space
