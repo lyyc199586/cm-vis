@@ -78,7 +78,7 @@ class StrengthSurface:
         def spectral(s1, s2, s3, sts, mu, k):
             """Strength surface of phase field model with spectral split (d=0)
             from Lorenzis's IJF paper (2021)
-            props: [sigma_ts, lbda, mu, K, nu]
+            props: [sigma_ts, mu, K]
             warning: this is very time consuming since I dont know how to do 
             this calculation with ndarrays...
             """
@@ -217,8 +217,8 @@ class StrengthSurface:
                 sigma_ts, mu, k = self.props
                 f = voldev(s1, s2, s3, sigma_ts, mu, k)
             case "SPECTRAL":
-                sigma_ts, lbda, mu, k, nu = self.props
-                f = spectral(s1, s2, s3, sigma_ts, lbda, mu, k, nu)
+                sigma_ts, mu, k = self.props
+                f = spectral(s1, s2, s3, sigma_ts, mu, k)
             case "KLBFNUC":
                 sigma_ts, sigma_cs, mu, k, gc, ell, delta = self.props
                 f = klbfnuc(s1, s2, s3, sigma_ts, sigma_cs, mu, k, gc, ell, delta)
