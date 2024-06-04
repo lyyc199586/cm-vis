@@ -7,18 +7,21 @@ import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 
 class VelocityAnalyzer:
-    def __init__(self, directory):
+    def __init__(self, directory:str):
         self.directory = directory
         self.filter_condition = None
         self.window_length = None
         self.polyorder = None
         self.tip_list = self._load_tip_coords()
-        
-    def set_savgol_params(self, windows_length, polyorder):
+    
+    def set_filter_condition(self, filter:str):
+        self.filter_condition = filter
+    
+    def set_savgol_params(self, windows_length:int, polyorder:int):
         self.window_length = windows_length
         self.polyorder = polyorder
         
-    def _extract_step(self, filename):
+    def _extract_step(self, filename:str):
         # extract time steps of contour csv file
         match = re.search(r'contour_(\d+)', filename)
         if match:
@@ -35,7 +38,7 @@ class VelocityAnalyzer:
             tip_list.append(tip)
         return np.array(tip_list)
     
-    def _tip_coords(self, file):
+    def _tip_coords(self, file:str):
         df = pd.read_csv(file)
         if self.filter_condition:
             filtered_df = df.query(self.filter_condition).copy()
