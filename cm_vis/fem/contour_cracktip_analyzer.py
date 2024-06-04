@@ -9,10 +9,10 @@ from scipy.signal import savgol_filter
 class VelocityAnalyzer:
     def __init__(self, directory):
         self.directory = directory
-        self.tip_list = self._load_tip_coords()
         self.filter_condition = None
         self.window_length = None
         self.polyorder = None
+        self.tip_list = self._load_tip_coords()
         
     def set_savgol_params(self, windows_length, polyorder):
         self.window_length = windows_length
