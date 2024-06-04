@@ -44,6 +44,13 @@ class VelocityAnalyzer:
         filtered_df['x^2 + y^2'] = filtered_df['Points:0']**2 + filtered_df['Points:1']**2
         max_row = filtered_df.loc[filtered_df['x^2 + y^2'].idxmax()]
         return [max_row['Time'], max_row['Points:0'], max_row['Points:1']]
+      
+    def calc_crack_length(self):
+        lengths = [0.0]
+        for i in range(1, len(self.tip_list)):
+            dx = np.sqrt((self.tip_list[i, 1] - self.tip_list[i - 1, 1])**2 + (self.tip_list[i, 2] - self.tip_list[i - 1, 2])**2)
+            lengths.append(lengths[i - 1] + dx)
+        return np.array(lengths)
 
     def calc_vel_direct(self):
         velocities = [0.0]
@@ -71,9 +78,10 @@ class VelocityAnalyzer:
         return np.array(velocities)
     
     def analyze(self):
+        lengths = self.calc_crack_length()
         velocities_direct = self.calc_vel_direct()
         velocities_filtered = self.calc_vel_savgol()
-        combined_output = np.hstack((self.tip_list, velocities_direct.reshape(-1, 1), velocities_filtered.reshape(-1, 1)))
+        combined_output = np.hstack((self.tip_list, lengths.reshape(-1, 1), velocities_direct.reshape(-1, 1), velocities_filtered.reshape(-1, 1)))
         return combined_output
     
     def plot_velocities(self, data):
@@ -91,5 +99,5 @@ class VelocityAnalyzer:
     def save_to_csv(self, data, path=None):
         if path is None:
             path = os.path.join(self.directory, 'velocity_output.csv')
-        df_combined = pd.DataFrame(data, columns=['Time', 'X', 'Y', 'Velocity_Direct', 'Velocity_Filtered'])
+        df_combined = pd.DataFrame(data, columns=['time', 'x', 'y', 'crack_length', 'vel_direct', 'vel_filtered'])
         df_combined.to_csv(path, index=False)
