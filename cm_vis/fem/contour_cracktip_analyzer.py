@@ -14,8 +14,8 @@ class VelocityAnalyzer:
         self.polyorder = None
         self.tip_list = self._load_tip_coords()
     
-    def set_filter_condition(self, filter:str):
-        self.filter_condition = filter
+    def set_filter_condition(self, filter_condition:str):
+        self.filter_condition = filter_condition
     
     def set_savgol_params(self, windows_length:int, polyorder:int):
         self.window_length = windows_length
@@ -42,6 +42,7 @@ class VelocityAnalyzer:
         df = pd.read_csv(file)
         if self.filter_condition:
             filtered_df = df.query(self.filter_condition).copy()
+            print(f"Only search for points satisfy {self.filter_condition}!")
         else:
             filtered_df = df.copy()
         filtered_df['x^2 + y^2'] = filtered_df['Points:0']**2 + filtered_df['Points:1']**2
