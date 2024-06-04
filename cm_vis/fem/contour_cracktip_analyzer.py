@@ -10,6 +10,8 @@ class VelocityAnalyzer:
     def __init__(self, directory:str, filter_condition:str=None):
         self.directory = directory
         self.filter_condition = filter_condition
+        if self.filter_condition:
+            print(f"Only search for points satisfy {self.filter_condition}!")
         self.window_length = None
         self.polyorder = None
         self.tip_list = self._load_tip_coords()
@@ -39,7 +41,6 @@ class VelocityAnalyzer:
         df = pd.read_csv(file)
         if self.filter_condition:
             filtered_df = df.query(self.filter_condition).copy()
-            print(f"Only search for points satisfy {self.filter_condition}!")
         else:
             filtered_df = df.copy()
         filtered_df['x^2 + y^2'] = filtered_df['Points:0']**2 + filtered_df['Points:1']**2
