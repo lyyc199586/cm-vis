@@ -10,6 +10,7 @@ class VelocityAnalyzer:
     def __init__(self, directory):
         self.directory = directory
         self.tip_list = self._load_tip_coords()
+        self.filter_condition = None
         self.window_length = None
         self.polyorder = None
         
@@ -36,7 +37,10 @@ class VelocityAnalyzer:
     
     def _tip_coords(self, file):
         df = pd.read_csv(file)
-        filtered_df =df[df['Points:1'] > 0].copy()
+        if self.filter_condition:
+            filtered_df = df.query(self.filter_condition).copy()
+        else:
+            filtered_df = df.copy()
         filtered_df['x^2 + y^2'] = filtered_df['Points:0']**2 + filtered_df['Points:1']**2
         max_row = filtered_df.loc[filtered_df['x^2 + y^2'].idxmax()]
         return [max_row['Time'], max_row['Points:0'], max_row['Points:1']]
