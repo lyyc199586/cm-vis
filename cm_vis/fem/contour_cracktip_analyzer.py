@@ -86,14 +86,33 @@ class VelocityAnalyzer:
     
     def plot_velocities(self, data):
         t = data[:, 0]
-        v_direct = data[:, 3]
-        v_filtered = data[:, 4]
+        v_direct = data[:, 4]
+        v_filtered = data[:, 5]
         fig, ax = plt.subplots()
         ax.plot(t, v_direct, label='Direct Velocity')
         ax.plot(t, v_filtered, label='Filtered Velocity', linestyle='--')
         ax.set_xlabel('Time')
         ax.set_ylabel('Velocity')
         ax.legend()
+        plt.show()
+        
+    def plot_crack_lengths(self, data):
+        t = data[:, 0]
+        ls = data[:, 3]
+        fig, ax = plt.subplots()
+        ax.plot(t, ls)
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Crack lengths')
+        plt.show()
+        
+    def plot_crack_trajectories(self, data):
+        x = data[:, 1]
+        y = data[:, 2]
+        fig, ax = plt.subplots()
+        ax.plot(x, y)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set(aspect="equal")
         plt.show()
         
     def save_to_csv(self, data, path=None):
