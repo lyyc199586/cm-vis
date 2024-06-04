@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 
 class VelocityAnalyzer:
-    def __init__(self, directory:str, filter_condition:str):
+    def __init__(self, directory:str, filter_condition:str=None):
         self.directory = directory
         self.filter_condition = filter_condition
         self.window_length = None
