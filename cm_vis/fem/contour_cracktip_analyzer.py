@@ -40,7 +40,7 @@ class VelocityAnalyzer:
     
     def _tip_coords(self, file:str):
         df = pd.read_csv(file)
-        if self.filter_condition:
+        if self.filter_condition is not None:
             filtered_df = df.query(self.filter_condition).copy()
             print(f"Only search for points satisfy {self.filter_condition}!")
         else:
