@@ -193,4 +193,4 @@ class CrackTipAnalyzer:
         """
         if output_filepath is None:
             output_filepath = self.filepath
-        self.tip.to_csv(output_filepath)
+        self.tip.to_csv(output_filepath, index=False)
