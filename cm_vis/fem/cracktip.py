@@ -1,98 +1,196 @@
-# postprocessing code to do crack tip tracking with phase field points cloud
-# use Exodus from ./exodus.py to extract d and coord at tstep, and use different
-# ways to `reconstract' a direct crack (or simple filter out the crack tip point),
-# compute the crack tip velocity based on crack tip location
-
-# TODO: not accurate in tip finding! and very slow use paraview contours instead for now
-
-import re
-import csv
+import pandas as pd
 import numpy as np
-from cm_vis.fem.exodus import Exodus
+import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
 
-
-def dist_search(model: Exodus, tip_init, tip_old, d_name="d", d_c=0.95, dist_old=0, tstep=0, block_id=0):
-    """search to find crack tip at tstep given exodus obj, d, and dcr by diatace
-    to the initial tip location, only works for single crack
-    model: Exodus object
-    tip_init: location of initial crack tip, np.array([x0, y0])
-    tip_old: location of old crack tip, np.array([tip_x_old, tip_y_old])
-    d_name: var name for phase field
-    d_c: critical phase field value (tip will be searched in x(d > d_c))
-    tstep: timestep
-    block_id: block id of mesh
-    return [tip_x, tip_y]
-    """
-    verts, _ = model.get_mesh(block_id, tstep)
-    d = model.get_var(d_name, timestep=tstep)
-    d_ind = np.where((d > d_c))[0]
-    if np.size(d_ind) < 1:
-        return tip_init
-    x = verts[d_ind, 0]
-    y = verts[d_ind, 1]
-
-    # only search for y>0 for now
-    y = np.abs(y)
-    dist = (x - tip_init[0]) ** 2 + (y - tip_init[1]) ** 2
-    valid_ind = np.where((dist >= dist_old) & (x >= tip_old[0]) & (y >= tip_old[1]))[0]
-    max_dist = np.max(dist[valid_ind])
-    tip_ind = np.where(dist == max_dist)[0]
-
-    return np.column_stack((x[tip_ind], y[tip_ind]))[0]
-
-def crack_tip_tracking(model: Exodus, tip_init, interval=1, d_name="d", d_c=0.95,
-                       save_csv = False, save_dir = None):
-    """loop over time steps, extract crack tip location, calculate crack tip velocity
-    model: Exodus object
-    tip_init: np.array([x0, y0])
-    interval: time step interval, determine the resolution of crack tip velocity
-    output file: time, tip_coord_x, tip_coord_y, tip_velocity
-    """
-    # initialization
-    time = model.get_time()
-    dist_old = 0
+class CrackTipAnalyzer:
+    def __init__(self, filepath: str):
+        """
+        Initialize the CrackTipAnalyzer with a file containing raw crack tip trajectory.
+        :param filepath: Path to the CSV file containing raw crack tip trajectory.
+        """
+        self.filepath = filepath
+        self.window_length = None
+        self.poly_order = None 
+        self.tip = self._load_raw_trajectory()
     
-    # open csv if required
-    if save_csv:
-        if save_dir is None:
-            save_dir = re.sub(r'\.[^.]+$', "_tip.csv", model.dir)
-        with open(save_dir, mode='w', newline='') as csv_file:
-            writer = csv.writer(csv_file)
-            writer.writerow(["time", "tip_x", "tip_y", "tip_vel"])
-            print(f"CSV file opened and header written to {save_dir}")
+    def set_savgol_params(self, window_length: int, poly_order: int):
+        """
+        Set the parameters for the Savitzky-Golay filter.
+        :param window_length: Length of the filter window (must be an odd number).
+        :param poly_order: Order of the polynomial used to fit the samples.
+        """
+        self.window_length = window_length
+        self.poly_order = poly_order
+    
+    def _load_raw_trajectory(self):
+        """
+        Load the tip coordinates from the raw trajectory file.
+        :return: DataFrame of tip coordinates and time.
+        """
+        raw_trajectory = pd.read_csv(self.filepath)
+        return raw_trajectory
+    
+    def calc_smooth_trajectory(self, plot=False):
+        """
+        Smooth the crack tip trajectory using the Savitzky-Golay filter.
+        :return: DataFrame of smoothed tip coordinates.
+        """
+        if self.window_length is None or self.poly_order is None:
+            raise ValueError("Savitzky-Golay parameters not set. Use set_savgol_params to set them.")
         
-    
-    # loop over time
-    for i in range(0, np.size(time), interval):
-        if(i==0):
-            crack_tip_list = np.hstack((time[0], tip_init, [0]))
-            tip_old = tip_init
-            print("Current crack tip info:\n Time, coord_x, coord_y, velocity")
-            if save_csv:
-                with open(save_dir, mode='a', newline='') as csv_file:
-                    writer = csv.writer(csv_file)
-                    writer.writerow(crack_tip_list)
-            else:
-                print(crack_tip_list)
-        else:
-    
-            # calculate tip velocity
-            dt = time[i] - time[i-1]
-            if(i==1):
-                tip_x_old, tip_y_old = crack_tip_list[1:3]
-            else:
-                tip_x_old, tip_y_old = crack_tip_list[i-1][1:3]
-            tip_old = np.array([tip_x_old, tip_y_old])
+        self.tip['Smoothed:0'] = savgol_filter(self.tip['Points:0'], self.window_length, self.poly_order)
+        self.tip['Smoothed:1'] = savgol_filter(self.tip['Points:1'], self.window_length, self.poly_order)
+        
+        if plot:
+            self.plot_trajectory(ax=None, smoothed=True)
             
-            dist_old = (tip_x_old - tip_init[0]) ** 2 + (tip_y_old - tip_init[1]) ** 2
-            cur_tip_loc = dist_search(model, tip_init, tip_old, d_name, d_c, dist_old, i)
-            tip_vel = np.sqrt((cur_tip_loc[0] - tip_x_old)**2 + (cur_tip_loc[1] - tip_y_old)**2)/dt
-            cur_tip_info = np.hstack(([time[i]], cur_tip_loc, [tip_vel]))
-            print(cur_tip_info)
-            crack_tip_list = np.vstack((crack_tip_list, cur_tip_info))
-            if save_csv:
-                with open(save_dir, mode='a', newline='') as csv_file:
-                    writer = csv.writer(csv_file)
-                    writer.writerow([f'{num:.4e}' for num in cur_tip_info])
+        return self.tip[['Time', 'Smoothed:0', 'Smoothed:1']]
     
-    return crack_tip_list
+    def calc_crack_length(self, use_smoothed=False, plot=False):
+        """
+        Calculate the cumulative crack length over time.
+        :param use_smoothed: Boolean indicating whether to use smoothed trajectory.
+        :param plot: Boolean indicating whether to plot the results.
+        :return: Series of cumulative crack lengths.
+        """
+        if use_smoothed:
+            coords = ['Smoothed:0', 'Smoothed:1']
+            length_col = 'Smoothed Length'
+        else:
+            coords = ['Points:0', 'Points:1']
+            length_col = 'Raw Length'
+        
+        diff_coords = self.tip[coords].diff().fillna(0)
+        diff_coords_squared = diff_coords.pow(2)
+        sum_diff_coords_squared = diff_coords_squared.sum(axis=1)
+        lengths = np.sqrt(sum_diff_coords_squared).cumsum()
+        
+        self.tip[length_col] = lengths
+        
+        if plot:
+            self.plot_variable(length_col, 'Crack Length', use_smoothed)
+        
+        return self.tip[length_col]
+    
+    def calc_crack_velocity(self, use_smoothed=False, plot=False):
+        """
+        Calculate the crack tip velocity over time.
+        :param use_smoothed: Boolean indicating whether to use smoothed trajectory.
+        :param plot: Boolean indicating whether to plot the results.
+        :return: Series of crack tip velocities.
+        """
+        if use_smoothed:
+            length_col = 'Smoothed Length'
+        else:
+            length_col = 'Raw Length'
+
+        times = self.tip['Time']
+        velocities = self.tip[length_col].diff() / times.diff()
+        velocities.iloc[0] = 0  # Set the first velocity to 0 to match the original length of the input array
+        
+        velocity_col = length_col.replace('Length', 'Velocity')
+        self.tip[velocity_col] = velocities
+        
+        if plot:
+            self.plot_variable(velocity_col, 'Crack Velocity', use_smoothed)
+        
+        return self.tip[velocity_col]
+
+    def plot_trajectory(self, ax=None, smoothed=False):
+        """
+        Plot the raw or smoothed crack tip trajectory.
+        :param ax: The axes to plot on. If None, create a new figure.
+        :param smoothed: Boolean indicating whether to plot smoothed trajectory.
+        """
+        if ax is None:
+            fig, ax = plt.subplots()
+        
+        if smoothed:
+            x, y = self.tip['Smoothed:0'], self.tip['Smoothed:1']
+            label = f"Smoothed Tip (window={self.window_length}, order={self.poly_order})"
+            ax.plot(x, y, label=label)
+        else:
+            x, y = self.tip['Points:0'], self.tip['Points:1']
+            label = "Raw Tip"
+            ax.plot(x, y, 'k--', lw=0.8, label=label)
+        
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_aspect('equal', adjustable='box')
+        ax.legend()
+        ax.grid(True)
+
+    def plot_variable(self, variable_col, ylabel, use_smoothed, ax=None):
+        """
+        Plot a variable (length or velocity) against time.
+        :param variable_col: Column name of the variable to plot.
+        :param ylabel: Label for the y-axis.
+        :param use_smoothed: Boolean indicating whether to use smoothed trajectory.
+        :param ax: The axes to plot on. If None, create a new figure.
+        """
+        times = self.tip['Time']
+        if ax is None:
+            fig, ax = plt.subplots()
+        
+        label = ylabel
+        if use_smoothed:
+            label = f'Smoothed {ylabel} (window={self.window_length}, poly={self.poly_order})'
+        else:
+            label = f'Raw {ylabel}'
+        ax.plot(times, self.tip[variable_col], label=label)
+        ax.set_xlabel('Time')
+        ax.set_ylabel(ylabel)
+        ax.legend()
+        ax.grid(True)
+
+    def plot_crack_info(self, raw_lengths, smoothed_lengths, raw_velocities, smoothed_velocities):
+        """
+        Plot the raw and smoothed crack length and velocity information.
+        :param raw_lengths: Series of raw cumulative crack lengths.
+        :param smoothed_lengths: Series of smoothed cumulative crack lengths.
+        :param raw_velocities: Series of raw crack tip velocities.
+        :param smoothed_velocities: Series of smoothed crack tip velocities.
+        """
+        fig, axs = plt.subplots(3, 1, figsize=(10, 15))
+
+        # Plot trajectories
+        self.plot_trajectory(axs[0], smoothed=False)
+        self.plot_trajectory(axs[0], smoothed=True)
+        axs[0].set_title('Crack Tip Trajectory')
+
+        # Plot lengths
+        self.plot_variable('Raw Length', 'Crack Length', use_smoothed=False, ax=axs[1])
+        self.plot_variable('Smoothed Length', 'Crack Length', use_smoothed=True, ax=axs[1])
+        axs[1].set_title('Crack Length over Time')
+
+        # Plot velocities
+        self.plot_variable('Raw Velocity', 'Crack Velocity', use_smoothed=False, ax=axs[2])
+        self.plot_variable('Smoothed Velocity', 'Crack Velocity', use_smoothed=True, ax=axs[2])
+        axs[2].set_title('Crack Velocity over Time')
+
+        plt.tight_layout()
+        plt.show()
+
+    def analyze(self):
+        """
+        Perform the complete analysis: calculate raw and smoothed crack lengths and velocities,
+        and plot the results.
+        """
+        raw_lengths = self.calc_crack_length(use_smoothed=False)
+        raw_velocities = self.calc_crack_velocity(use_smoothed=False)
+
+        self.calc_smooth_trajectory()
+        smoothed_lengths = self.calc_crack_length(use_smoothed=True)
+        smoothed_velocities = self.calc_crack_velocity(use_smoothed=True)
+
+        self.plot_crack_info(raw_lengths, smoothed_lengths, raw_velocities, smoothed_velocities)
+
+    def save_to_csv(self, output_filepath=None):
+        """
+        Save the updated DataFrame to a CSV file.
+        :param output_filepath: Path to the output CSV file. If None, save to the original filepath.
+        """
+        if output_filepath is None:
+            output_filepath = self.filepath
+        self.tip.to_csv(output_filepath)
