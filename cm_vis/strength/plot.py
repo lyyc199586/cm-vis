@@ -15,11 +15,13 @@ class SurfacePlotter:
         """data_dir: path to data.npy"""
         self.dir = data_dir
 
-    def plot(self, dim: int, ax=None, save: bool = False, norm: float = None, **kwargs):
+    def plot(self, option: str = "3D", ax=None, save: bool = False, norm: float = None, nu: float = None, s3: float = 0, **kwargs):
         """return ax
-        dim: 2 or 3
+        option: "3D", "plane_stress", or "plane_strain"
         save: True to save to csv
-        norm: normalize by s1/norm, s2/norm, s3/norm"""
+        norm: normalize by s1/norm, s2/norm, s3/norm
+        nu: Poisson's ratio for plane strain calculation
+        s3: value to use for s3 in plane stress condition (default is 0)"""
 
         def get_srange(data_dir):
             pattern = r"srange\[((?:-?\d+(?:\.\d+)?(?:,\s*)?)+)\]"
@@ -34,44 +36,15 @@ class SurfacePlotter:
 
         # evaulate contour of isosurface
         xmin, xmax, num = get_srange(self.dir)
+        num = int(num)
         dx = (xmax - xmin) / (num - 1)
-        z_index = int((0 - xmin) / dx)  # index at z=0 plane, for 2D plot
         f = np.load(self.dir)
 
-        if dim == 2:
-            contours = find_contours(f[:, :, z_index], 0)
-            if save:
-                save_dir = self.dir.replace(".npy", "_2d.csv")
-                x_coord = contours[0][:, 0] * dx + xmin
-                y_coord = contours[0][:, 1] * dx + xmin
-                coords = np.column_stack((x_coord, y_coord))
-                np.savetxt(save_dir, coords, delimiter=",", comments="", fmt="%.2f")
-
-        else:
+        if option == "3D":
             f_smooth = gaussian_filter(f, sigma=1, order=0)
             verts, faces, _, _ = marching_cubes(f_smooth, level=0)
-            if save:
-                verts_dir = self.dir.replace(".npy", "_3d_verts.csv")
-                faces_dir = self.dir.replace(".npy", "_3d_faces.csv")
-                x_coord = verts[:, 0] * dx + xmin
-                y_coord = verts[:, 1] * dx + xmin
-                z_coord = verts[:, 2] * dx + xmin
-                coords = np.column_stack((x_coord, y_coord, z_coord))
-                np.savetxt(verts_dir, coords, delimiter=",", comments="", fmt="%.2f")
-                np.savetxt(faces_dir, faces, delimiter=",", comments="", fmt="%d")
 
-        # plot
-        if ax is None:
-            if dim == 2:
-                fig, ax = plt.subplots()
-                ax.set_aspect("equal")
-                if norm is not None:
-                    ax.set_xlabel("s11/norm")
-                    ax.set_ylabel("s22/norm")
-                else:
-                    ax.set_xlabel("s11")
-                    ax.set_ylabel("s22")
-            else:
+            if ax is None:
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection="3d")
                 ax.set_proj_type("ortho")
@@ -84,34 +57,79 @@ class SurfacePlotter:
                     ax.set_ylabel("s22")
                     ax.set_zlabel("s33")
 
-        if dim == 2:
-            for contour in contours:
+            ax.plot_trisurf(
+                (verts[:, 0] * dx + xmin) / (norm if norm else 1),
+                (verts[:, 1] * dx + xmin) / (norm if norm else 1),
+                (verts[:, 2] * dx + xmin) / (norm if norm else 1),
+                triangles=faces,
+                **kwargs,
+            )
+
+            if save:
+                verts_dir = self.dir.replace(".npy", "_3d_verts.csv")
+                faces_dir = self.dir.replace(".npy", "_3d_faces.csv")
+                np.savetxt(verts_dir, verts * dx + xmin, delimiter=",", fmt="%.2f")
+                np.savetxt(faces_dir, faces, delimiter=",", fmt="%d")
+
+        elif option == "plane_strain":
+            # Plane strain 2D plot (s1, s2)
+            s1_range = np.linspace(xmin, xmax, num)
+            s2_range = np.linspace(xmin, xmax, num)
+            s1_grid, s2_grid = np.meshgrid(s1_range, s2_range)
+
+            # Calculate s3 = nu * (s1 + s2)
+            s3_grid = nu * (s1_grid + s2_grid)
+            s3_indices = np.round((s3_grid - xmin) / dx).astype(int)
+
+            # Ensure the indices are within bounds
+            s3_indices = np.clip(s3_indices, 0, num - 1)
+            
+            # Extract the plane strain surface using advanced indexing
+            plane_strain_surface = f[np.arange(num)[:, None], np.arange(num), s3_indices]
+
+            # Apply Gaussian smoothing to the plane strain surface
+            plane_strain_surface_smooth = gaussian_filter(plane_strain_surface, sigma=1)
+
+            # Extract the contour of the plane strain surface
+            contours = find_contours(plane_strain_surface_smooth, 0)
+
+            if ax is None:
+                fig, ax = plt.subplots()
+                ax.set_aspect("equal")
                 if norm is not None:
-                    ax.plot(
-                        (contour[:, 0] * dx + xmin) / norm,
-                        (contour[:, 1] * dx + xmin) / norm,
-                        **kwargs
-                    )
+                    ax.set_xlabel("s11/norm")
+                    ax.set_ylabel("s22/norm")
                 else:
-                    ax.plot(
-                        contour[:, 0] * dx + xmin, contour[:, 1] * dx + xmin, **kwargs
-                    )
-        else:
-            if norm is not None:
-                ax.plot_trisurf(
-                    (verts[:, 0]*dx + xmin) / norm,
-                    (verts[:, 1]*dx + xmin) / norm,
-                    (verts[:, 2]*dx + xmin) / norm,
-                    triangles = faces,
-                    **kwargs,
-                )
-            else:
-                ax.plot_trisurf(
-                    verts[:, 0]*dx + xmin,
-                    verts[:, 1]*dx + xmin,
-                    verts[:, 2]*dx + xmin,
-                    triangles = faces,
-                    **kwargs,
-                )
+                    ax.set_xlabel("s11")
+                    ax.set_ylabel("s22")
+
+            for contour in contours:
+                ax.plot((contour[:, 0] * dx + xmin) / (norm if norm else 1), (contour[:, 1] * dx + xmin) / (norm if norm else 1), **kwargs)
+
+            if save:
+                save_dir_2d = self.dir.replace(".npy", f"2d_plane_strain_nu{nu}.csv")
+                np.savetxt(save_dir_2d, np.column_stack((contour[:, 0] * dx + xmin, contour[:, 1] * dx + xmin)), delimiter=",", fmt="%.2f")
+
+        elif option == "plane_stress":
+            # Plane stress cross-section at s3 = s3 (default is 0)
+            z_index = int((s3 - xmin) / dx)  # index at z=0 plane, for plane stress
+            contours = find_contours(f[:, :, z_index], 0)
+
+            if ax is None:
+                fig, ax = plt.subplots()
+                ax.set_aspect("equal")
+                if norm is not None:
+                    ax.set_xlabel("s11/norm")
+                    ax.set_ylabel("s22/norm")
+                else:
+                    ax.set_xlabel("s11")
+                    ax.set_ylabel("s22")
+
+            for contour in contours:
+                ax.plot((contour[:, 0] * dx + xmin) / (norm if norm else 1), (contour[:, 1] * dx + xmin) / (norm if norm else 1), **kwargs)
+
+            if save:
+                save_dir = self.dir.replace(".npy", f"2d_plane_stress_s3{s3}.csv")
+                np.savetxt(save_dir, np.column_stack(contours[0]), delimiter=",", fmt="%.2f")
 
         return ax

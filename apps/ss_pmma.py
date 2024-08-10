@@ -80,7 +80,7 @@ for s in ss:
     surface = StrengthSurface(s["stype"], s["props"], s["srange"], data_dir)
     surface.gen()
     plotter = SurfacePlotter(data_dir)
-    ax = plotter.plot(dim=3, save=True)
+    ax = plotter.plot(option='3D', save=True)
 
 # %% plot settings
 
@@ -106,12 +106,12 @@ fig, ax = plt.subplots(1, 2, figsize=(6.4, 2.655))
 for s in ss1:
     data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
     plotter = SurfacePlotter(data_dir)
-    plotter.plot(dim=2, ax=ax[0], label=labels[s["stype"]])
+    plotter.plot(option='plane_stress', ax=ax[0], label=labels[s["stype"]])
     
 for s in ss2:
     data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
     plotter = SurfacePlotter(data_dir)
-    plotter.plot(dim=2, ax=ax[1], label=labels[s["stype"]])
+    plotter.plot(option='plane_stress', ax=ax[1], label=labels[s["stype"]])
 
 
 # annotate
@@ -140,7 +140,7 @@ for i in range(2):
         s = ss3[i][j]
         data_dir = f"../data/strength/ss_{s['mname']}_{s['stype']}_props{s['props']}_srange{s['srange']}.npy"
         plotter = SurfacePlotter(data_dir)
-        plotter.plot(dim=3, ax=ax[i][j], label=labels[s["stype"]], color=colors[i][j], alpha=0.8)
+        plotter.plot(option='3D', ax=ax[i][j], label=labels[s["stype"]], color=colors[i][j], alpha=0.8)
         
         # annotate
         ax[i][j].set_aspect("equal")
