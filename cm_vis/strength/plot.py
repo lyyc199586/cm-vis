@@ -61,6 +61,7 @@ class SurfacePlotter:
         xmin, xmax, num = self.srange
         num = int(num)
         dx = (xmax - xmin) / (num - 1)
+        f = np.load(self.dir)
         
         if option == "3D":
 
