@@ -3,6 +3,7 @@
 import re
 import numpy as np
 import matplotlib.pyplot as plt
+import s3dlib.surface as s3d
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.ndimage import gaussian_filter
 from skimage.measure import marching_cubes, find_contours
@@ -14,6 +15,39 @@ class SurfacePlotter:
     def __init__(self, data_dir: str) -> None:
         """data_dir: path to data.npy"""
         self.dir = data_dir
+        self.srange = self.get_srange()
+        self.surf = self.get_surf()
+        
+    def get_srange(self):
+            pattern = r"srange\[((?:-?\d+(?:\.\d+)?(?:,\s*)?)+)\]"
+            matches = re.findall(pattern, self.dir)
+            if matches:
+                srange = [float(val) for val in matches[0].split(",")]
+            else:
+                print("srange not found or wrong format!")
+                srange = -1
+
+            return srange
+        
+    def get_surf(self, norm: float = None, **kwargs):
+        """load surf"""
+
+        # evaulate contour of isosurface
+        xmin, xmax, num = self.srange
+        num = int(num)
+        dx = (xmax - xmin) / (num - 1)
+        f = np.load(self.dir)
+
+        f_smooth = gaussian_filter(f, sigma=1, order=0)
+        verts, faces, _, _ = marching_cubes(f_smooth, level=0)
+
+        # relocate vertices
+        verts[:, 0] = (verts[:, 0] * dx + xmin) / (norm if norm else 1)
+        verts[:, 1] = (verts[:, 1] * dx + xmin) / (norm if norm else 1)
+        verts[:, 2] = (verts[:, 2] * dx + xmin) / (norm if norm else 1)
+        
+        self.surf = s3d.Surface3DCollection(verts, faces, **kwargs)
+        return self.surf
 
     def plot(self, option: str = "3D", ax=None, save: bool = False, norm: float = None, nu: float = None, s3: float = 0, **kwargs):
         """return ax
@@ -23,47 +57,30 @@ class SurfacePlotter:
         nu: Poisson's ratio for plane strain calculation
         s3: value to use for s3 in plane stress condition (default is 0)"""
 
-        def get_srange(data_dir):
-            pattern = r"srange\[((?:-?\d+(?:\.\d+)?(?:,\s*)?)+)\]"
-            matches = re.findall(pattern, data_dir)
-            if matches:
-                srange = [float(val) for val in matches[0].split(",")]
-            else:
-                print("srange not found or wrong format!")
-                srange = -1
-
-            return srange
-
         # evaulate contour of isosurface
-        xmin, xmax, num = get_srange(self.dir)
+        xmin, xmax, num = self.srange
         num = int(num)
         dx = (xmax - xmin) / (num - 1)
-        f = np.load(self.dir)
-
+        
         if option == "3D":
-            f_smooth = gaussian_filter(f, sigma=1, order=0)
-            verts, faces, _, _ = marching_cubes(f_smooth, level=0)
 
             if ax is None:
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection="3d")
                 ax.set_proj_type("ortho")
                 if norm is not None:
-                    ax.set_xlabel("s11/norm")
-                    ax.set_ylabel("s22/norm")
-                    ax.set_zlabel("s33/norm")
+                    ax.set_xlabel("s1/norm")
+                    ax.set_ylabel("s2/norm")
+                    ax.set_zlabel("s3/norm")
                 else:
-                    ax.set_xlabel("s11")
-                    ax.set_ylabel("s22")
-                    ax.set_zlabel("s33")
+                    ax.set_xlabel("s1")
+                    ax.set_ylabel("s2")
+                    ax.set_zlabel("s3")
 
-            ax.plot_trisurf(
-                (verts[:, 0] * dx + xmin) / (norm if norm else 1),
-                (verts[:, 1] * dx + xmin) / (norm if norm else 1),
-                (verts[:, 2] * dx + xmin) / (norm if norm else 1),
-                triangles=faces,
-                **kwargs,
-            )
+            # load surf
+            ax.add_collection3d(self.surf.shade())
+            ax.set(xlim=[xmin, xmax], ylim=[xmin, xmax], zlim=[xmin, xmax])
+            ax.set_title(str(self.surf))
 
             if save:
                 verts_dir = self.dir.replace(".npy", "_3d_verts.csv")
@@ -83,7 +100,7 @@ class SurfacePlotter:
 
             # Ensure the indices are within bounds
             s3_indices = np.clip(s3_indices, 0, num - 1)
-            
+
             # Extract the plane strain surface using advanced indexing
             plane_strain_surface = f[np.arange(num)[:, None], np.arange(num), s3_indices]
 
@@ -97,11 +114,11 @@ class SurfacePlotter:
                 fig, ax = plt.subplots()
                 ax.set_aspect("equal")
                 if norm is not None:
-                    ax.set_xlabel("s11/norm")
-                    ax.set_ylabel("s22/norm")
+                    ax.set_xlabel("s1/norm")
+                    ax.set_ylabel("s2/norm")
                 else:
-                    ax.set_xlabel("s11")
-                    ax.set_ylabel("s22")
+                    ax.set_xlabel("s1")
+                    ax.set_ylabel("s2")
 
             for contour in contours:
                 ax.plot((contour[:, 0] * dx + xmin) / (norm if norm else 1), (contour[:, 1] * dx + xmin) / (norm if norm else 1), **kwargs)
