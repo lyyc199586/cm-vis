@@ -39,7 +39,7 @@ class SurfacePlotter:
         f = np.load(self.dir)
 
         f_smooth = gaussian_filter(f, sigma=1, order=0)
-        verts, faces, _, _ = marching_cubes(f_smooth, level=0)
+        verts, faces, _, _ = marching_cubes(f, level=0)
 
         # relocate vertices
         verts[:, 0] = (verts[:, 0] * dx + xmin) / (norm if norm else 1)
@@ -70,9 +70,9 @@ class SurfacePlotter:
                 ax = fig.add_subplot(111, projection="3d")
                 ax.set_proj_type("ortho")
                 if norm is not None:
-                    ax.set_xlabel("s1/norm")
-                    ax.set_ylabel("s2/norm")
-                    ax.set_zlabel("s3/norm")
+                    ax.set_xlabel("norm(s1)")
+                    ax.set_ylabel("norm(s2)")
+                    ax.set_zlabel("norm(s3)")
                 else:
                     ax.set_xlabel("s1")
                     ax.set_ylabel("s2")
@@ -115,8 +115,8 @@ class SurfacePlotter:
                 fig, ax = plt.subplots()
                 ax.set_aspect("equal")
                 if norm is not None:
-                    ax.set_xlabel("s1/norm")
-                    ax.set_ylabel("s2/norm")
+                    ax.set_xlabel("norm(s1")
+                    ax.set_ylabel("norm(s2)")
                 else:
                     ax.set_xlabel("s1")
                     ax.set_ylabel("s2")
@@ -137,8 +137,8 @@ class SurfacePlotter:
                 fig, ax = plt.subplots()
                 ax.set_aspect("equal")
                 if norm is not None:
-                    ax.set_xlabel("s11/norm")
-                    ax.set_ylabel("s22/norm")
+                    ax.set_xlabel("norm(s11)")
+                    ax.set_ylabel("norm(s22)")
                 else:
                     ax.set_xlabel("s11")
                     ax.set_ylabel("s22")
@@ -148,6 +148,6 @@ class SurfacePlotter:
 
             if save:
                 save_dir = self.dir.replace(".npy", f"2d_plane_stress_s3{s3}.csv")
-                np.savetxt(save_dir, np.column_stack(contours[0]), delimiter=",", fmt="%.2f")
+                np.savetxt(save_dir, np.column_stack((contour[:, 0] * dx + xmin, contour[:, 1] * dx + xmin)), delimiter=",", fmt="%.2f")
 
         return ax
