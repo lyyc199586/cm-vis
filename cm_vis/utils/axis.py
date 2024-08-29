@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, ArrowStyle
 
-def axis_line(ax, origin=[0, 0], lw=0.4, arrowfc='k', offset=0.05):
+def axis_line(ax, lw=0.4, origin=[0, 0], labels=None, arrowfc='k', offset=0.05):
     """
     Set the axes of the given matplotlib Axes object to intersect at the specified position (x, y)
     and point in the specified directions given by vectors.
@@ -52,3 +52,12 @@ def axis_line(ax, origin=[0, 0], lw=0.4, arrowfc='k', offset=0.05):
         arrow_props.update(arrowstyle=style)
         arr = FancyArrowPatch(**arrow_props)
         ax.add_patch(arr)
+    
+    # set labels
+    if labels is not None:
+        x_length = xlim[1] - xlim[0]
+        y_length = ylim[1] - ylim[0]
+        ax.set_xlabel(labels[0])
+        ax.xaxis.set_label_coords(1.05, (origin[1] - ylim[0])/y_length)
+        ax.set_ylabel(labels[1], rotation=0)
+        ax.yaxis.set_label_coords((origin[0] - xlim[0])/x_length, 1.05)
