@@ -73,12 +73,12 @@ class CrackTipAnalyzer:
         
         return self.tip[length_col]
     
-    def calc_crack_velocity(self, use_smoothed=False, plot=False):
+    def calc_crack_speed(self, use_smoothed=False, plot=False):
         """
-        Calculate the crack tip velocity over time.
+        Calculate the crack tip speed over time.
         :param use_smoothed: Boolean indicating whether to use smoothed trajectory.
         :param plot: Boolean indicating whether to plot the results.
-        :return: Series of crack tip velocities.
+        :return: Series of crack tip speeds.
         """
         if use_smoothed:
             length_col = 'Smoothed Length'
@@ -86,14 +86,50 @@ class CrackTipAnalyzer:
             length_col = 'Raw Length'
 
         times = self.tip['Time']
-        velocities = self.tip[length_col].diff() / times.diff()
-        velocities.iloc[0] = 0  # Set the first velocity to 0 to match the original length of the input array
+        speeds = self.tip[length_col].diff() / times.diff()
+        speeds.iloc[0] = 0  # Set the first speed to 0 to match the original length of the input array
         
-        velocity_col = length_col.replace('Length', 'Velocity')
-        self.tip[velocity_col] = velocities
+        speed_col = length_col.replace('Length', 'Speed')
+        self.tip[speed_col] = speeds
         
         if plot:
-            self.plot_variable(velocity_col, 'Crack Velocity', use_smoothed)
+            self.plot_variable(speed_col, 'Crack Speed', use_smoothed)
+        
+        return self.tip[speed_col]
+    
+    def calc_crack_velocity(self, direction, use_smoothed=False, plot=False):
+        """
+        Calculate the crack tip velocities in a specified direction over time.
+        :param direction: Integer indicating velocity direction (x = 0 or y = 1)
+        :param use_smoothed: Boolean indicating whether to plot the results.
+        :return: Series of crack tip velocities in a specified coordinate direction.
+        """
+        if direction not in {0, 1}:
+            raise ValueError("Parameter 'direction' must be 0 (x-direction or 1 (y-direction)")
+        
+        if use_smoothed:
+            coords = ['Smoothed:0', 'Smoothed:1']
+            length_cols = ['Smoothed Length:0', 'Smoothed Length:1']
+        else:
+            coords = ['Points:0', 'Points:1']
+            length_cols = ['Raw Length:0', 'Raw Length:1']
+        
+        diff_coord = self.tip[coords[direction]].diff().fillna(0)
+        diff_coord_squared = diff_coord.pow(2)
+        lengths = np.sqrt(diff_coord_squared).cumsum()
+
+        self.tip[length_cols[direction]] = lengths
+        
+        times = self.tip['Time']
+        velocities = self.tip[length_cols[direction]].diff() / times.diff()
+        velocities.iloc[0] = 0  # Set the first speed to 0 to match the original length of the input array
+        
+        velocity_col = length_cols[direction].replace('Length', 'Velocity')
+        self.tip[velocity_col] = velocities
+
+        if plot:
+            direction_label = 'x' if direction == 0 else 'y'
+            self.plot_variable(velocity_col, f'Crack Velocity in {direction_label}', use_smoothed)
         
         return self.tip[velocity_col]
 
@@ -123,7 +159,7 @@ class CrackTipAnalyzer:
 
     def plot_variable(self, variable_col, ylabel, use_smoothed, ax=None):
         """
-        Plot a variable (length or velocity) against time.
+        Plot a variable (length, velocity) against time.
         :param variable_col: Column name of the variable to plot.
         :param ylabel: Label for the y-axis.
         :param use_smoothed: Boolean indicating whether to use smoothed trajectory.
@@ -144,47 +180,71 @@ class CrackTipAnalyzer:
         ax.legend()
         ax.grid(True)
 
-    def plot_crack_info(self, raw_lengths, smoothed_lengths, raw_velocities, smoothed_velocities):
+    def plot_crack_info(self, raw_lengths, smoothed_lengths, raw_speeds, smoothed_speeds, 
+                        raw_velocities_x, raw_velocities_y, smoothed_velocities_x, smoothed_velocities_y):
         """
-        Plot the raw and smoothed crack length and velocity information.
+        Plot the raw and smoothed crack length, speed, and velocity information.
         :param raw_lengths: Series of raw cumulative crack lengths.
         :param smoothed_lengths: Series of smoothed cumulative crack lengths.
-        :param raw_velocities: Series of raw crack tip velocities.
-        :param smoothed_velocities: Series of smoothed crack tip velocities.
+        :param raw_speeds: Series of raw crack tip speeds.
+        :param smoothed_speeds: Series of smoothed crack tip speeds.
+        :param raw_velocities_x: Series of raw crack tip velocities in x direction.
+        :param smoothed_velocities_x: Series of smoothed crack tip velocities in x direction.
+        :param raw_velocities_y: Series of raw crack tip velocities in y direction.
+        :param smoothed_velocities_y: Series of smoothed crack tip velocities in y direction.
         """
-        fig, axs = plt.subplots(3, 1, figsize=(10, 15))
+        fig, axs = plt.subplots(3, 2, figsize=(15, 15))
 
         # Plot trajectories
-        self.plot_trajectory(axs[0], smoothed=False)
-        self.plot_trajectory(axs[0], smoothed=True)
-        axs[0].set_title('Crack Tip Trajectory')
+        self.plot_trajectory(axs[0, 0], smoothed=False)
+        self.plot_trajectory(axs[0, 0], smoothed=True)
+        axs[0, 0].set_title('Crack Tip Trajectory')
 
         # Plot lengths
-        self.plot_variable('Raw Length', 'Crack Length', use_smoothed=False, ax=axs[1])
-        self.plot_variable('Smoothed Length', 'Crack Length', use_smoothed=True, ax=axs[1])
-        axs[1].set_title('Crack Length over Time')
+        self.plot_variable('Raw Length', 'Crack Length', use_smoothed=False, ax=axs[0, 1])
+        self.plot_variable('Smoothed Length', 'Crack Length', use_smoothed=True, ax=axs[0, 1])
+        axs[0, 1].set_title('Crack Length over Time')
 
-        # Plot velocities
-        self.plot_variable('Raw Velocity', 'Crack Velocity', use_smoothed=False, ax=axs[2])
-        self.plot_variable('Smoothed Velocity', 'Crack Velocity', use_smoothed=True, ax=axs[2])
-        axs[2].set_title('Crack Velocity over Time')
+        # Plot velocities in x direction
+        self.plot_variable('Raw Velocity:0', 'Crack Velocity in x', use_smoothed=False, ax=axs[1, 0])
+        self.plot_variable('Smoothed Velocity:0', 'Crack Velocity in x', use_smoothed=True, ax=axs[1, 0])
+        axs[1, 0].set_title('Crack Velocity in x over Time')
+
+        # Plot velocities in y direction
+        self.plot_variable('Raw Velocity:1', 'Crack Velocity in y', use_smoothed=False, ax=axs[1, 1])
+        self.plot_variable('Smoothed Velocity:1', 'Crack Velocity in y', use_smoothed=True, ax=axs[1, 1])
+        axs[1, 1].set_title('Crack Velocity in y over Time')
+
+        # Plot speeds
+        self.plot_variable('Raw Speed', 'Crack Speed', use_smoothed=False, ax=axs[2, 0])
+        self.plot_variable('Smoothed Speed', 'Crack Speed', use_smoothed=True, ax=axs[2, 0])
+        axs[2, 0].set_title('Crack Speed over Time')
+
+        # Turn off bottom-right empty plot
+        axs[2, 1].axis('off')
+        axs[2, 1].set_facecolor('white')
 
         plt.tight_layout()
         plt.show()
 
     def analyze(self):
         """
-        Perform the complete analysis: calculate raw and smoothed crack lengths and velocities,
+        Perform the complete analysis: calculate raw and smoothed crack lengths, speed, and velocities,
         and plot the results.
         """
         raw_lengths = self.calc_crack_length(use_smoothed=False)
-        raw_velocities = self.calc_crack_velocity(use_smoothed=False)
+        raw_speeds = self.calc_crack_speed(use_smoothed=False)
+        raw_velocities_x = self.calc_crack_velocity(0, use_smoothed=False)
+        raw_velocities_y = self.calc_crack_velocity(1, use_smoothed=False)
 
         self.calc_smooth_trajectory()
         smoothed_lengths = self.calc_crack_length(use_smoothed=True)
-        smoothed_velocities = self.calc_crack_velocity(use_smoothed=True)
+        smoothed_speeds = self.calc_crack_speed(use_smoothed=True)
+        smoothed_velocities_x = self.calc_crack_velocity(0, use_smoothed=True)
+        smoothed_velocities_y = self.calc_crack_velocity(1, use_smoothed=True)
 
-        self.plot_crack_info(raw_lengths, smoothed_lengths, raw_velocities, smoothed_velocities)
+        self.plot_crack_info(raw_lengths, smoothed_lengths, raw_speeds, smoothed_speeds, 
+                             raw_velocities_x, raw_velocities_y, smoothed_velocities_x, smoothed_velocities_y)
 
     def save_to_csv(self, output_filepath=None):
         """
