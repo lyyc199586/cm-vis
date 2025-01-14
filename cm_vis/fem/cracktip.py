@@ -193,7 +193,7 @@ class CrackTipAnalyzer:
         :param raw_velocities_y: Series of raw crack tip velocities in y direction.
         :param smoothed_velocities_y: Series of smoothed crack tip velocities in y direction.
         """
-        fig, axs = plt.subplots(3, 2, figsize=(10, 15))
+        fig, axs = plt.subplots(3, 2, figsize=(15, 15))
 
         # Plot trajectories
         self.plot_trajectory(axs[0, 0], smoothed=False)
