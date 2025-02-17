@@ -1,15 +1,15 @@
-# style sheet for elsevier journals single colomns
+# style sheet for sans-serif
 
 # Figure Properties
 figure.figsize: 3.2, 2.655 # aspect ratio 6:5, width=0.9\columnwidth
 figure.dpi: 1000           # figure dots per inch
 
 # Font Properties
-font.family: serif
+font.family: sans-serif
 font.size: 9 # for IJNM
 text.usetex: True
-text.latex.preamble: \usepackage{siunitx}
-pgf.rcfonts: False # when output to pgf, dont specify font properties
+text.latex.preamble: \usepackage{siunitx}\sisetup{detect-all}\usepackage{sansmath}\sansmath
+pgf.rcfonts: False
 
 # Lines
 lines.linewidth: 0.8

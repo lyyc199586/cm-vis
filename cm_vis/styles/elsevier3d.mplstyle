@@ -61,8 +61,8 @@ ytick.minor.width: 0.15
 ytick.labelleft: True
 
 # tick pad (only for 3d)
-# xtick.major.pad: -3
-# ytick.major.pad: -3
+xtick.major.pad: -2
+ytick.major.pad: -2
 
 # Legend Properties
 legend.fancybox: False
