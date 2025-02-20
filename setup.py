@@ -11,7 +11,7 @@ setup(
       'numpy',
       'scipy',
       'scikit-image',
-      'matplotlib',
+      'matplotlib==3.8.4',
       'netCDF4',
     ],
 )
