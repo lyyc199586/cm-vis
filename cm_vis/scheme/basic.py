@@ -1,26 +1,50 @@
+"""
+This module provides classes and methods for creating and annotating 
+schematic diagrams in CM-VIS. It includes functionality for 
+adding arrows, text, coordinate axes, paths, and boundary conditions.
+"""
+
 import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.patheffects as patheffects
 from matplotlib.path import Path
 from matplotlib.patches import Arc, FancyArrowPatch, ArrowStyle, PathPatch
-# from matplotlib.collections import LineCollection, PatchCollection
+from typing import List, Optional, Tuple, Union
 
 class SchemeBase:
+    """
+    Base class for creating schematic diagrams with matplotlib.
+    Provides methods for adding arrows, text, coordinate axes, and paths.
+    """
     
-    def __init__(self, ax, lw=0.4) -> None:
+    def __init__(self, ax, lw: float = 0.4) -> None:
+        """
+        Initialize the SchemeBase object.
+
+        Args:
+            ax: Matplotlib axes object where the diagram will be drawn.
+            lw: Line width for drawing elements.
+        """
         self.ax = ax
         self.x_len = ax.get_xlim()[1] - ax.get_xlim()[0]
         self.y_len = ax.get_ylim()[1] - ax.get_ylim()[0]
         self.max_len = max(self.x_len, self.y_len)
         self.lw = lw
     
-    def add_arrow(self, type, xy=None, path=None, fc=None):
-        '''base function to draw arraw:
-        type: customized matplotlib arrow type,
-        xy = [[x0, y0], [x1, y1]]
-            :use posA=xy[0], posB=xy[1] for straight path, or path=path for any path,
-        fc: facecolor of arrow
-        '''
+    def add_arrow(self, 
+                  type: str, 
+                  xy: Optional[List[List[float]]] = None, 
+                  path: Optional[Path] = None, 
+                  fc: Optional[str] = None) -> None:
+        """
+        Add an arrow to the diagram.
+
+        Args:
+            type: Arrow style (e.g., "-latex", "latex-latex").
+            xy: Coordinates for a straight arrow, [[x0, y0], [x1, y1]].
+            path: Path object for a curved arrow.
+            fc: Face color of the arrow.
+        """
         if(xy is None and path is None ):
             raise ValueError("Provide either xy=(xyfrom, xyto) or path!")
         
@@ -55,9 +79,26 @@ class SchemeBase:
         arr = FancyArrowPatch(**arrow_props)
         self.ax.add_patch(arr)
     
-    def add_text(self, textx, texty, text, textc=None, boxfc=None, loc=None, offset=None):
-        '''base function to draw text, a wrapper of ax.text
-        '''
+    def add_text(self, 
+                 textx: float, 
+                 texty: float, 
+                 text: str, 
+                 textc: Optional[str] = None, 
+                 boxfc: Optional[str] = None, 
+                 loc: Optional[str] = None, 
+                 offset: Optional[float] = None) -> None:
+        """
+        Add text to the diagram.
+
+        Args:
+            textx: X-coordinate of the text.
+            texty: Y-coordinate of the text.
+            text: Text content.
+            textc: Text color.
+            boxfc: Background color of the text box.
+            loc: Location of the text relative to the coordinates.
+            offset: Offset for positioning the text.
+        """
         
         textloc = None
         if(boxfc is None):
@@ -89,11 +130,26 @@ class SchemeBase:
         self.ax.text(textx, texty, text, textloc, 
                      bbox=dict(fc=boxfc, ec='none'), color=textc)
         
-    def add_coord_axis(self, origin=[0.0, 0.0], length=[1.0, 1.0], 
-                       text=['$x$', '$y$'], textlocs=["right", "upper"], textc=None, 
-                       arrowfc=None, offset=None):
-        '''draw coordinates at origin (or any location)
-        '''
+    def add_coord_axis(self, 
+                       origin: List[float] = [0.0, 0.0], 
+                       length: List[float] = [1.0, 1.0], 
+                       text: List[str] = ['$x$', '$y$'], 
+                       textlocs: List[str] = ["right", "upper"], 
+                       textc: Optional[str] = None, 
+                       arrowfc: Optional[str] = None, 
+                       offset: Optional[float] = None) -> None:
+        """
+        Draw coordinate axes at a specified origin.
+
+        Args:
+            origin: Origin of the coordinate axes.
+            length: Length of the axes.
+            text: Labels for the axes.
+            textlocs: Locations of the axis labels.
+            textc: Text color for the labels.
+            arrowfc: Face color for the arrows.
+            offset: Offset for the labels.
+        """
         for i in range(np.size(length)):
             xyto = origin.copy()
             xyto[i] = origin[i] + length[i]
@@ -101,12 +157,25 @@ class SchemeBase:
             self.add_text(xyto[0], xyto[1], text[i], loc=textlocs[i], 
                           textc=textc, offset=offset)
             
-    def add_pathpatch(self, verts, curve=True, closed=False, draw=True, **kwargs):
-        '''base funciton to generate path of lines or curves passing vertices
-        verts: np.array([[x0, y0], ...])
-        if curve=Ture, uses scipy.interpolate to draw a smooth curve, need at least 4 vertices
-        return path
-        '''
+    def add_pathpatch(self, 
+                      verts: np.ndarray, 
+                      curve: bool = True, 
+                      closed: bool = False, 
+                      draw: bool = True, 
+                      **kwargs) -> Path:
+        """
+        Generate a path of lines or curves passing through vertices.
+
+        Args:
+            verts: Array of vertices [[x0, y0], ...].
+            curve: Whether to draw a smooth curve.
+            closed: Whether to close the path.
+            draw: Whether to draw the path on the axes.
+            **kwargs: Additional arguments for the PathPatch.
+
+        Returns:
+            Path object representing the generated path.
+        """
         if(closed):
             verts = np.vstack((verts, verts[0]))
         
@@ -145,14 +214,33 @@ class SchemeBase:
         return path
     
 class Scheme(SchemeBase):
+    """
+    Extended class for creating schematic diagrams with additional 
+    methods for annotating dimensions, radii, angles, and boundary conditions.
+    """
     
-    def dim_dist(self, xyfrom, xyto, text=None, arrowfc=None, textc=None, boxfc=None, textloc=None, offset=None):
-        '''annotate dimension with text in the center:
-        |<|--- text ---|>|, if text is None, use the distance
-        ax: matplotlib axes object
-        xyfrom: [x0, y0]
-        xyto: [x1, y1]
-        '''
+    def dim_dist(self, 
+                 xyfrom: List[float], 
+                 xyto: List[float], 
+                 text: Optional[str] = None, 
+                 arrowfc: Optional[str] = None, 
+                 textc: Optional[str] = None, 
+                 boxfc: Optional[str] = None, 
+                 textloc: Optional[str] = None, 
+                 offset: Optional[float] = None) -> None:
+        """
+        Annotate a dimension with text in the center.
+
+        Args:
+            xyfrom: Starting point of the dimension.
+            xyto: Ending point of the dimension.
+            text: Text to annotate the dimension.
+            arrowfc: Face color for the arrows.
+            textc: Text color.
+            boxfc: Background color of the text box.
+            textloc: Location of the text.
+            offset: Offset for positioning the text.
+        """
         if(text is None):
             dist = np.sqrt((xyfrom[0] - xyto[0])**2 + (xyfrom[1] - xyto[1])**2)
             text = str(np.round(dist, 2))
@@ -169,11 +257,30 @@ class Scheme(SchemeBase):
         texty = (xyfrom[1] + xyto[1])/2
         self.add_text(textx, texty, text, textc=textc, boxfc=boxfc, loc=textloc, offset=offset)
 
-    def dim_radius(self, center, radius, angle=45, arrowfc=None, text=None, 
-                   textc=None, boxfc=None, textloc=None, offset=None):
-        '''annotate radius for arc:
-        --text--|>, if text is None, use str(radius)
-        '''
+    def dim_radius(self, 
+                   center: List[float], 
+                   radius: float, 
+                   angle: float = 45, 
+                   arrowfc: Optional[str] = None, 
+                   text: Optional[str] = None, 
+                   textc: Optional[str] = None, 
+                   boxfc: Optional[str] = None, 
+                   textloc: Optional[str] = None, 
+                   offset: Optional[float] = None) -> None:
+        """
+        Annotate a radius for an arc.
+
+        Args:
+            center: Center of the arc.
+            radius: Radius of the arc.
+            angle: Angle of the radius line in degrees.
+            arrowfc: Face color for the arrow.
+            text: Text to annotate the radius.
+            textc: Text color.
+            boxfc: Background color of the text box.
+            textloc: Location of the text.
+            offset: Offset for positioning the text.
+        """
         if(text is None):
             text = str(radius)
 
@@ -182,13 +289,34 @@ class Scheme(SchemeBase):
         self.add_arrow("-latex", xy=(center, xyto), fc=arrowfc)
         self.add_text(xyto[0]/2, xyto[1]/2, text, textc, boxfc, loc=textloc, offset=offset)
         
-    def dim_angle(self, radius, start_deg, stop_deg, xyfrom=None, center=None, 
-                  arrowloc="stop", arrowfc=None, text=None, textc=None, textloc=None, offset=None):
-        '''annotate angle for arc: just like \draw(x, y) arc (start_deg:stop_deg:radius)
-        |<--text-->|, if text is None, use str(abs(stop_deg - start_deg))
-        provide either xyfrom=[x0, y0] or center=[x0, y0]
-        arrowloc: "stop", "start", "both" or "None"
-        '''
+    def dim_angle(self, 
+                  radius: float, 
+                  start_deg: float, 
+                  stop_deg: float, 
+                  xyfrom: Optional[List[float]] = None, 
+                  center: Optional[List[float]] = None, 
+                  arrowloc: str = "stop", 
+                  arrowfc: Optional[str] = None, 
+                  text: Optional[str] = None, 
+                  textc: Optional[str] = None, 
+                  textloc: Optional[str] = None, 
+                  offset: Optional[float] = None) -> None:
+        """
+        Annotate an angle for an arc.
+
+        Args:
+            radius: Radius of the arc.
+            start_deg: Starting angle in degrees.
+            stop_deg: Ending angle in degrees.
+            xyfrom: Starting point of the arc.
+            center: Center of the arc.
+            arrowloc: Location of the arrow ("stop", "start", "both", or "None").
+            arrowfc: Face color for the arrow.
+            text: Text to annotate the angle.
+            textc: Text color.
+            textloc: Location of the text.
+            offset: Offset for positioning the text.
+        """
         if((xyfrom is None and center is None) or (xyfrom is None and center is None)):
             raise ValueError("Provide either xyfrom=[x0, y0] or center=[x0, y0]!")
         
@@ -225,29 +353,52 @@ class Scheme(SchemeBase):
                   center[1] + radius*np.sin((start + stop)/2)]
         self.add_text(textxy[0], textxy[1], text, textc, loc=textloc, offset=offset)
     
-    def add_fix_bc(self, bnd, scale=1, spacing=1, angle=45, **kwargs):
-        '''annotate fix boundary with short inclined lines: ///////
-        use matplotlib.patheffects.withTickedStroke
-        bnd: boundary nodes, dim: n_nodes*2, [[x1, y1], ..., [xn, yn]]
-        loc: "upper", "lower", "left", "right"
-        scale: scale the length of the arrow
-        spacing: spacing between ticks
-        angle: the angle between the path and the tick
-        '''
+    def add_fix_bc(self, 
+                   bnd: np.ndarray, 
+                   scale: float = 1, 
+                   spacing: float = 1, 
+                   angle: float = 45, 
+                   **kwargs) -> None:
+        """
+        Annotate a fixed boundary with short inclined lines.
+
+        Args:
+            bnd: Boundary nodes as an array of coordinates.
+            scale: Scale factor for the line length.
+            spacing: Spacing between the ticks.
+            angle: Angle between the path and the tick.
+            **kwargs: Additional arguments for the plot.
+        """
         length = scale*4*self.lw
         self.ax.plot(bnd[:, 0], bnd[:, 1], c='k',
                      path_effects=[patheffects.withTickedStroke(spacing=spacing,
                                                                 angle=angle,
                                                                 length=length)], **kwargs)
         
-    def add_point_bc(self, bnd, bc, type="tail", scale=1, arrowfc=None,
-                     text=None, textc=None, textloc=None, offset=None):
-        '''base function to annotate point boundary condition: |-->
-        bnd: boundary node, np.array([x1, y1])
-        bc: boundary condition, np.array([dx1, dy1])
-        type: "tail": arrow tail at bnd, "head": arrow head at bnd
-        scale: scale the length of the arrow
-        '''
+    def add_point_bc(self, 
+                     bnd: np.ndarray, 
+                     bc: np.ndarray, 
+                     type: str = "tail", 
+                     scale: float = 1, 
+                     arrowfc: Optional[str] = None, 
+                     text: Optional[str] = None, 
+                     textc: Optional[str] = None, 
+                     textloc: Optional[str] = None, 
+                     offset: Optional[float] = None) -> None:
+        """
+        Annotate a point boundary condition with an arrow.
+
+        Args:
+            bnd: Boundary node as a coordinate array.
+            bc: Boundary condition as a displacement vector.
+            type: Arrow type ("tail" or "head").
+            scale: Scale factor for the arrow length.
+            arrowfc: Face color for the arrow.
+            text: Text to annotate the boundary condition.
+            textc: Text color.
+            textloc: Location of the text.
+            offset: Offset for positioning the text.
+        """
         if(type == "tail"):
             scale = scale
             bnd_s = bnd + scale*bc
@@ -263,18 +414,34 @@ class Scheme(SchemeBase):
             self.add_text((bnd[0] + bnd_s[0])/2, (bnd[1] + bnd_s[1])/2, 
                           text=text, textc=textc, loc=textloc, offset=offset)
         
-    def add_dist_bc(self, bnd, bc, type="tail", scale=1, interval=1, arrowfc=None,
-                    text=None, textc=None, textloc=None, offset=None, **kwargs):
-        '''base function to annotate distributed boundary condition:
-        ---------
-        | | | | |
-        v v v v v
-        bnd: boundary nodes, dim: n_nodes*2, np.array([[x1, y1], ..., [xn, yn]])
-        bc: boundary conditions, dim: n_nodes*2, np.array([[dx1, dy1], ..., [dxn, dyn]])
-        type: "tail": arrow tail at bnd, "head": arrow head at bnd
-        scale: scale the length of the arrow
-        interval: interval between arrows
-        '''
+    def add_dist_bc(self, 
+                    bnd: np.ndarray, 
+                    bc: np.ndarray, 
+                    type: str = "tail", 
+                    scale: float = 1, 
+                    interval: int = 1, 
+                    arrowfc: Optional[str] = None, 
+                    text: Optional[str] = None, 
+                    textc: Optional[str] = None, 
+                    textloc: Optional[str] = None, 
+                    offset: Optional[float] = None, 
+                    **kwargs) -> None:
+        """
+        Annotate a distributed boundary condition with arrows.
+
+        Args:
+            bnd: Boundary nodes as an array of coordinates.
+            bc: Boundary conditions as an array of displacement vectors.
+            type: Arrow type ("tail" or "head").
+            scale: Scale factor for the arrow length.
+            interval: Interval between arrows.
+            arrowfc: Face color for the arrows.
+            text: Text to annotate the boundary condition.
+            textc: Text color.
+            textloc: Location of the text.
+            offset: Offset for positioning the text.
+            **kwargs: Additional arguments for the plot.
+        """
         n_nodes = np.size(bnd, 0)
         if(type == "tail"):
             scale = scale
@@ -295,6 +462,9 @@ class Scheme(SchemeBase):
                           text=text, textc=textc, loc=textloc, offset=offset)
             
     
-    def add_normal_bc():
-        #TODO: add_normal_bc based on add_dist_bc, normal to the boundary
+    def add_normal_bc(self) -> None:
+        """
+        Annotate a normal boundary condition (to be implemented).
+        """
+        # TODO: add_normal_bc based on add_dist_bc, normal to the boundary
         pass
