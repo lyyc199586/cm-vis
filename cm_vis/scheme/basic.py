@@ -85,7 +85,9 @@ class SchemeBase:
                  text: str, 
                  textc: Optional[str] = None, 
                  boxfc: Optional[str] = None, 
+                 boxec: Optional[str] = None,
                  loc: Optional[str] = None, 
+                 rotation: Optional[float] = None,
                  offset: Optional[float] = None) -> None:
         """
         Add text to the diagram.
@@ -103,6 +105,9 @@ class SchemeBase:
         textloc = None
         if(boxfc is None):
             boxfc = 'None'
+            
+        if(boxec is None):
+            boxec = 'None'
             
         if(textc is None):
             textc = 'k'
@@ -127,8 +132,8 @@ class SchemeBase:
                 textx = textx + offset*self.max_len
             case _:
                 textloc = dict(ha='center', va='bottom')
-        self.ax.text(textx, texty, text, textloc, 
-                     bbox=dict(fc=boxfc, ec='none'), color=textc)
+        self.ax.text(textx, texty, text, textloc, rotation=rotation,
+                     bbox=dict(fc=boxfc, ec=boxec), color=textc)
         
     def add_coord_axis(self, 
                        origin: List[float] = [0.0, 0.0], 
