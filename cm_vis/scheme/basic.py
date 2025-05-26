@@ -35,7 +35,11 @@ class SchemeBase:
                   type: str, 
                   xy: Optional[List[List[float]]] = None, 
                   path: Optional[Path] = None, 
-                  fc: Optional[str] = None) -> None:
+                  fc: Optional[str] = None,
+                  ec: Optional[str] = None,
+                  hw: Optional[float] = None,
+                  hl: Optional[float] = None,
+                  tw: Optional[float] = None) -> None:
         """
         Add an arrow to the diagram.
 
@@ -50,27 +54,46 @@ class SchemeBase:
         
         if(fc is None):
             fc = 'k'
-        
+            
+        if(ec is None):
+            ec = 'k'
+            
+        if(hw is None):
+            hw = 2*self.lw
+            
+        if(hl is None):
+            hl = 6*self.lw
+            
+        if(tw is None):
+            tw = 2*self.lw
+            
+                
         if(path is None):
             arrow_props = dict(posA=xy[0], posB=xy[1], shrinkA=0, shrinkB=0, lw=self.lw,
-                           joinstyle="miter", capstyle="butt", fc=fc, ec=fc)
+                           joinstyle="miter", capstyle="butt", fc=fc, ec=ec)
         else:
             arrow_props = dict(path=path, shrinkA=0, shrinkB=0, lw=self.lw,
-                           joinstyle="miter", capstyle="butt", fc=fc, ec=fc)
+                           joinstyle="miter", capstyle="butt", fc=fc, ec=ec)
         
         match type:
             case "-latex":
-                style = ArrowStyle('-|>', head_length=6*self.lw, head_width=2*self.lw)
+                style = ArrowStyle('-|>', head_length=hl, head_width=hw)
             case "latex-":
-                style = ArrowStyle('<|-', head_length=6*self.lw, head_width=2*self.lw)
+                style = ArrowStyle('<|-', head_length=hl, head_width=hw)
             case "latex-latex":
-                style = ArrowStyle('<|-|>', head_length=6*self.lw, head_width=2*self.lw)
+                style = ArrowStyle('<|-|>', head_length=hl, head_width=hw)
             case "-bar":
-                style = ArrowStyle('|-|', widthA=0, widthB=4*self.lw)
+                style = ArrowStyle('|-|', widthA=0, widthB=2*hw)
             case "bar-":
-                style = ArrowStyle('|-|', widthA=4*self.lw, widthB=0)
+                style = ArrowStyle('|-|', widthA=2*hw, widthB=0)
             case "bar-bar":
-                style = ArrowStyle('|-|', widthA=4*self.lw, widthB=4*self.lw)
+                style = ArrowStyle('|-|', widthA=2*hw, widthB=2*hw)
+            case "simple":
+                style = ArrowStyle('simple', head_length=hl, head_width=hw, tail_width=tw)
+            case "fancy":
+                style = ArrowStyle('fancy', head_length=hl, head_width=hw, tail_width=tw)
+            case "wedge":
+                style = ArrowStyle('wedge', head_length=hl, head_width=hw, tail_width=tw)
             case _:
                 style = ArrowStyle('-')
         
