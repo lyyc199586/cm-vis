@@ -8,7 +8,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 import matplotlib.patheffects as patheffects
 from matplotlib.path import Path
-from matplotlib.patches import Arc, FancyArrowPatch, ArrowStyle, PathPatch
+from matplotlib.patches import Arc, FancyArrowPatch, ArrowStyle, PathPatch, Polygon
 from typing import List, Optional, Tuple, Union, Literal
 
 class SchemeBase:
@@ -497,3 +497,60 @@ class Scheme(SchemeBase):
         """
         # TODO: add_normal_bc based on add_dist_bc, normal to the boundary
         pass
+    
+    def add_cube(
+        self,
+        origin: List[float] = [0.0, 0.0],
+        size: float = 1.0,
+        depth: float = 0.2,
+        text: Optional[str] = None,
+        ec: Optional[str] = None,
+        front_color: Optional[str] = None,
+        side_color: Optional[str] = None,
+        top_color: Optional[str] = None,
+        **text_props: dict
+    ) -> None:
+        """
+        Draw a pseudo-3D cube to the diagram.
+
+        Args:
+            origin: bottom left of the cube.
+            size: Size of the cube.
+            depth: Depth of the cube.
+            text: Text to annotate the cube.
+            ec: Edge color of the cube.
+            face: Face color of the cube.
+            side: Side color of the cube.
+            top: Top color of the cube.
+        """
+        x0, y0 = origin
+        dx = size
+        offset = depth * dx 
+        if(ec is None):
+            ec = 'k'
+        if(front_color is None):
+            front_color = 'white'
+        if(side_color is None):
+            side_color = 'lightgray'
+        if(top_color is None):
+            top_color = 'white'
+        
+        # Front face
+        front = [(x0, y0), (x0 + dx, y0), (x0 + dx, y0 + dx), (x0, y0 + dx)]
+        # Top face
+        top = [(x0, y0 + dx), (x0 + dx, y0 + dx),
+               (x0 + dx + offset, y0 + dx + offset), (x0 + offset, y0 + dx + offset)]
+        # Side face
+        side = [(x0 + dx, y0), (x0 + dx + offset, y0 + offset),
+                (x0 + dx + offset, y0 + dx + offset), (x0 + dx, y0 + dx)]
+
+        # Draw the faces
+        self.ax.add_patch(Polygon(front, closed=True, facecolor=front_color, edgecolor=ec, lw=self.lw))
+        self.ax.add_patch(Polygon(top, closed=True, facecolor=top_color, edgecolor=ec, lw=self.lw))
+        self.ax.add_patch(Polygon(side, closed=True, facecolor=side_color, edgecolor=ec, lw=self.lw))
+        
+        if text is not None:
+            # Calculate the position for the text
+            text_x = x0 + dx / 2
+            text_y = y0 + dx / 2
+            self.add_text(text_x, text_y, text, loc='center', **text_props)
