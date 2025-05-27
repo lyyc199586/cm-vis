@@ -571,9 +571,10 @@ class Scheme(SchemeBase):
                 (x0 + dx + offset, y0 + dx + offset), (x0 + dx, y0 + dx)]
 
         # Draw the faces
-        self.ax.add_patch(Polygon(front, closed=True, facecolor=front_color, edgecolor=ec, lw=self.lw))
-        self.ax.add_patch(Polygon(top, closed=True, facecolor=top_color, edgecolor=ec, lw=self.lw))
-        self.ax.add_patch(Polygon(side, closed=True, facecolor=side_color, edgecolor=ec, lw=self.lw))
+        style = {'edgecolor': ec, 'lw': self.lw, 'joinstyle': 'bevel'}
+        self.ax.add_patch(Polygon(front, closed=True, facecolor=front_color, **style))
+        self.ax.add_patch(Polygon(top, closed=True, facecolor=top_color, **style))
+        self.ax.add_patch(Polygon(side, closed=True, facecolor=side_color, **style))
         
         if text is not None:
             # Calculate the position for the text
