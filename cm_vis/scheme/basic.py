@@ -9,7 +9,7 @@ from scipy.interpolate import interp1d
 import matplotlib.patheffects as patheffects
 from matplotlib.path import Path
 from matplotlib.patches import Arc, FancyArrowPatch, ArrowStyle, PathPatch
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Literal
 
 class SchemeBase:
     """
@@ -93,7 +93,7 @@ class SchemeBase:
             case "fancy":
                 style = ArrowStyle('fancy', head_length=hl, head_width=hw, tail_width=tw)
             case "wedge":
-                style = ArrowStyle('wedge', head_length=hl, head_width=hw, tail_width=tw)
+                style = ArrowStyle('wedge', tail_width=tw)
             case _:
                 style = ArrowStyle('-')
         
@@ -106,6 +106,7 @@ class SchemeBase:
                  textx: float, 
                  texty: float, 
                  text: str, 
+                 fs: Union[None, float, Literal['xx-small', 'x-small', 'small', 'medium', 'large', 'x-large', 'xx-large']] = None,
                  textc: Optional[str] = None, 
                  boxfc: Optional[str] = None, 
                  boxec: Optional[str] = None,
@@ -155,7 +156,7 @@ class SchemeBase:
                 textx = textx + offset*self.max_len
             case _:
                 textloc = dict(ha='center', va='bottom')
-        self.ax.text(textx, texty, text, textloc, rotation=rotation,
+        self.ax.text(textx, texty, text, textloc, fontsize=fs, rotation=rotation,
                      bbox=dict(fc=boxfc, ec=boxec), color=textc)
         
     def add_coord_axis(self, 
