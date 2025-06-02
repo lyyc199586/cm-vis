@@ -95,11 +95,11 @@ class SchemeBase:
             case "bar-bar":
                 style = ArrowStyle('|-|', widthA=2*hw, widthB=2*hw)
             case "simple":
-                style = ArrowStyle('simple', head_length=hl, head_width=hw, tail_width=tw)
+                style = ArrowStyle('simple', head_length=hl, head_width=4*hw, tail_width=2*tw)
             case "fancy":
-                style = ArrowStyle('fancy', head_length=hl, head_width=hw, tail_width=tw)
+                style = ArrowStyle('fancy', head_length=hl, head_width=4*hw, tail_width=2*tw)
             case "wedge":
-                style = ArrowStyle('wedge', tail_width=tw)
+                style = ArrowStyle('wedge', tail_width=2*tw)
             case _:
                 style = ArrowStyle('-')
         
@@ -107,6 +107,29 @@ class SchemeBase:
         arrow_props.update(arrowstyle=style)
         arr = FancyArrowPatch(**arrow_props)
         self.ax.add_patch(arr)
+        
+    def add_path_arrow(
+        self,
+        points: List[Tuple[float, float]],
+        type: str = "-latex",
+        fc: Optional[str] = None,
+        ec: Optional[str] = None
+    ) -> None:
+        """
+        Draw an arrow along a polyline defined by a sequence of points.
+
+        Args:
+            points: List of (x, y) points defining the path (at least 2).
+            type: Arrow style string.
+            fc: Face color.
+            ec: Edge color.
+        """
+        if len(points) < 2:
+            raise ValueError("Need at least 2 points to draw a path arrow.")
+
+        codes = [Path.MOVETO] + [Path.LINETO] * (len(points) - 1)
+        path = Path(points, codes)
+        self.add_arrow(type=type, path=path, fc=fc, ec=ec)
     
     def add_text(
         self, 
