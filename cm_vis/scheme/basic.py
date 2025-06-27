@@ -220,6 +220,32 @@ class SchemeBase:
             self.add_arrow("-latex", xy=(origin, xyto), fc=arrowfc)
             self.add_text(xyto[0], xyto[1], text[i], loc=textlocs[i], 
                           textc=textc, offset=offset)
+    
+    def add_3d_axis(
+        self,
+        origin : List[float] = [0.0, 0.0],
+        x_dir : List[float] = [1.0, 0.0],
+        y_dir : List[float] = [0.0, 1.0],
+        z_dir : List[float] = [1.0, 1.0],
+        text: List[str] = ['$x$', '$y$', '$z$'], 
+        textlocs: List[str] = ["right", "upper", "upper"], 
+        textc: Optional[str] = None, 
+        arrowfc: Optional[str] = None, 
+        offset: Optional[float] = None
+    ) -> None:
+        """
+        Draw a pseudo 3d coordinate axes at a specified origin
+        """
+        if textc is None:
+            textc = ['k', 'k', 'k']
+        
+        for axis, t, tloc, tcolor  in zip([x_dir, y_dir, z_dir], text, textlocs, textc):
+            xyfrom = origin.copy()
+            xyto = np.array(axis) + np.array(xyfrom)
+            self.add_arrow("-latex", xy=(origin, xyto), fc=arrowfc)
+            self.add_text(xyto[0], xyto[1], t, loc=tloc, 
+                          textc=tcolor, offset=offset)
+        
             
     def add_pathpatch(
         self, 
