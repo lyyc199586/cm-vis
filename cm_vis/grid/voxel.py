@@ -1,5 +1,13 @@
 """
-This module provides 
+This module provides utilities for loading, processing, and visualizing 3D voxel data.
+
+Functions:
+- load_vox: Load voxel data from a text file.
+- find_furthest_corner: Determine the furthest corner of a bounding box from the camera.
+- hidden_edges_from_furthest: Identify hidden edges based on the furthest corner.
+- plot_visible_edges: Plot visible edges of a bounding box based on view angle.
+- voxel_image: Render a 3D voxel scalar field as a surface plot.
+- voxel_contourf: Render a 3D voxel scalar field using contour plots on cube faces.
 """
 
 import numpy as np
@@ -7,18 +15,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from mpl_toolkits.mplot3d import proj3d
-from typing import Optional, Tuple, Set
+from typing import Optional, Tuple, Set, Dict
 from pathlib import Path
 
-def load_vox(path:Path) -> np.ndarray:
+def load_vox(path: Path) -> np.ndarray:
     """
-    Load voxel data from a text file of format: x y z value
-    
-     Parameters:
-    - path: path to vox.txt file
+    Load voxel data from a text file of format: x y z value.
+
+    Parameters:
+    - path (Path): Path to the vox.txt file.
 
     Returns:
-    - vox: 3D ndarray such that vox[x, y, z] = value
+    - np.ndarray: A 3D ndarray such that vox[x, y, z] = value.
     """
     data = pd.read_csv(path, sep=r'[\s,]+', engine='python', header=None, names=["x", "y", "z", "value"])  # shape: (N, 4)
     x_vals = np.sort(data["x"].unique())
@@ -32,9 +40,16 @@ def load_vox(path:Path) -> np.ndarray:
     return vox
 
 
-def find_furthest_corner(corners: dict, ax: plt.Axes) -> str:
+def find_furthest_corner(corners: Dict[str, Tuple[float, float, float]], ax: plt.Axes) -> str:
     """
-    Given 8 cube corners and ax, return the label of the furthest corner from the camera.
+    Given 8 cube corners and a matplotlib 3D axis, return the label of the furthest corner from the camera.
+
+    Parameters:
+    - corners (Dict[str, Tuple[float, float, float]]): Dictionary of corner labels and their coordinates.
+    - ax (plt.Axes): Matplotlib 3D axis.
+
+    Returns:
+    - str: Label of the furthest corner.
     """
     max_z = -np.inf
     furthest_label = None
@@ -49,6 +64,12 @@ def find_furthest_corner(corners: dict, ax: plt.Axes) -> str:
 def hidden_edges_from_furthest(corner: str) -> Set[Tuple[str, str]]:
     """
     Given a corner label like '000', return the 3 edges from that corner.
+
+    Parameters:
+    - corner (str): Label of the corner.
+
+    Returns:
+    - Set[Tuple[str, str]]: Set of tuples representing the hidden edges.
     """
     def edge(a, b): return (a, b) if a < b else (b, a)
 
@@ -71,10 +92,11 @@ def plot_visible_edges(
     Plot only the 9 visible edges of a voxel bounding box, based on view angle.
 
     Parameters:
-    - ax: matplotlib 3D axes.
-    - bounds: tuple of (xmin, xmax, ymin, ymax, zmin, zmax).
-    - color: edge color (default: black).
-    - zorder: drawing order (default: high to ensure visibility).
+    - ax (plt.Axes): Matplotlib 3D axes.
+    - bounds (Tuple[float, float, float, float, float, float]): Tuple of (xmin, xmax, ymin, ymax, zmin, zmax).
+    - color (str): Edge color (default: black).
+    - zorder (float): Drawing order (default: high to ensure visibility).
+    - kwargs: Additional keyword arguments for the plot.
     """
     xmin, xmax, ymin, ymax, zmin, zmax = bounds
 
@@ -108,7 +130,7 @@ def plot_visible_edges(
     hidden = hidden_edges_from_furthest(furthest)
 
     # Plot visible edges
-    edge_kw = dict(color="k", zorder=zorder)
+    edge_kw = dict(color=color, zorder=zorder)
     edge_kw.update(kwargs)
     for a_key, b_key in edges:
         if (a_key, b_key) in hidden or (b_key, a_key) in hidden:
@@ -128,9 +150,22 @@ def voxel_image(
     ax: Optional[plt.Axes] = None,
 ) -> plt.Axes:
     """
-    voxel: f(x, y, z) = value
-    """    
-    
+    Render a 3D voxel scalar field as a surface plot.
+
+    Parameters:
+    - vox (np.ndarray): 3D array representing the voxel scalar field.
+    - vmin (Optional[float]): Minimum value for colormap normalization.
+    - vmax (Optional[float]): Maximum value for colormap normalization.
+    - cmap (str): Colormap name.
+    - shade (bool): Whether to shade the surface.
+    - edge (bool): Whether to draw bounding box edges.
+    - edge_kw (Optional[dict]): Additional keyword arguments for edge plotting.
+    - surf_kw (Optional[dict]): Additional keyword arguments for surface plotting.
+    - ax (Optional[plt.Axes]): Matplotlib 3D axis.
+
+    Returns:
+    - plt.Axes: Matplotlib 3D axis with the plot.
+    """
     if ax is None:
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -194,12 +229,17 @@ def voxel_contourf(
     Visualize voxel scalar field using contourf on all 6 cube faces, and optional bounding edges.
 
     Parameters:
-    - vox: ndarray (x, y, z)
-    - level: number of contour levels
-    - vmin/vmax: colormap range
-    - cmap: colormap name
-    - edge: whether to draw 9 visible bounding box edges
-    - ax: optional 3D matplotlib axis
+    - vox (np.ndarray): 3D array representing the voxel scalar field.
+    - level (int): Number of contour levels.
+    - vmin (Optional[float]): Minimum value for colormap normalization.
+    - vmax (Optional[float]): Maximum value for colormap normalization.
+    - cmap (str): Colormap name.
+    - edge (bool): Whether to draw 9 visible bounding box edges.
+    - edge_kw (Optional[dict]): Additional keyword arguments for edge plotting.
+    - ax (Optional[plt.Axes]): Matplotlib 3D axis.
+
+    Returns:
+    - plt.Axes: Matplotlib 3D axis with the plot.
     """
     if ax is None:
         fig = plt.figure()
@@ -223,12 +263,12 @@ def voxel_contourf(
 
     # Define 6 cube faces: (data, x, y, z, zdir, offset)
     face_slices = [
-        (vox[:, :, -1], X[:, :, -1], Y[:, :, -1], Z[:, :, -1], 'z', nz- 1),  # top
-        (vox[:, :,  0], X[:, :,  0], Y[:, :,  0], Z[:, :,  0], 'z', 0),          # bottom
-        (vox[:, -1, :], X[:, -1, :], Y[:, -1, :], Z[:, -1, :], 'x', nx - 1),  # front
-        (vox[:,  0, :], X[:,  0, :], Y[:,  0, :], Z[:,  0, :], 'x', 0),          # back
-        (vox[-1, :, :], X[-1, :, :], Y[-1, :, :], Z[-1, :, :], 'y', ny - 1),  # right
-        (vox[ 0, :, :], X[ 0, :, :], Y[ 0, :, :], Z[ 0, :, :], 'y', 0),          # left
+        (vox[:, :, -1], X[:, :, -1], Y[:, :, -1], Z[:, :, -1], 'z', nz- 1), 
+        (vox[:, :,  0], X[:, :,  0], Y[:, :,  0], Z[:, :,  0], 'z', 0),     
+        (vox[:, -1, :], X[:, -1, :], Y[:, -1, :], Z[:, -1, :], 'x', nx - 1),
+        (vox[:,  0, :], X[:,  0, :], Y[:,  0, :], Z[:,  0, :], 'x', 0),     
+        (vox[-1, :, :], X[-1, :, :], Y[-1, :, :], Z[-1, :, :], 'y', ny - 1),
+        (vox[ 0, :, :], X[ 0, :, :], Y[ 0, :, :], Z[ 0, :, :], 'y', 0),     
     ]
 
     for v, x, y, z, zdir, offset in face_slices:
