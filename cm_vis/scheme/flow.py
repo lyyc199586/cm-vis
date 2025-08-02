@@ -1,9 +1,41 @@
 """
-flow.py
----------
-This module provides classes and methods for creating and annotating flowcharts in CM-VIS.
-It defines various node shapes (Rectangle, Cube, Diamond, Ellipse, Parallelogram) and
-the FlowScheme class for managing and drawing flowcharts.
+Flowchart Creation Tools
+========================
+
+This module provides classes and methods for creating and annotating flowcharts
+in CM-VIS. It defines various node shapes (Rectangle, Cube, Diamond, Ellipse, 
+Parallelogram) and the FlowScheme class for managing and drawing flowcharts.
+
+The module supports creating professional flowcharts with customizable node
+styles, connections, and layouts suitable for technical documentation and
+process visualization.
+
+Classes
+-------
+Node : Base class for flowchart nodes
+Rectangle : Rectangular node shape
+Cube : 3D cube-style node  
+Diamond : Diamond-shaped decision node
+Ellipse : Elliptical start/end node
+Parallelogram : Parallelogram input/output node
+FlowScheme : Main flowchart management class
+
+Examples
+--------
+>>> import matplotlib.pyplot as plt
+>>> from cm_vis.scheme import FlowScheme, Rectangle, Diamond
+>>> 
+>>> fig, ax = plt.subplots()
+>>> flow = FlowScheme(ax)
+>>> 
+>>> # Create nodes
+>>> start = Rectangle((1, 3), 1.5, 0.6, "Start Process")
+>>> decision = Diamond((1, 2), 1.2, 0.8, "Decision?")
+>>> 
+>>> # Add to flowchart
+>>> flow.add_node(start)
+>>> flow.add_node(decision)
+>>> flow.add_connection(start, decision, "bottom", "top")
 """
 
 import numpy as np
@@ -30,11 +62,25 @@ class Node:
 
     def get_anchor(self, direction: str) -> Tuple[float, float]:
         """
-        Get the anchor point on the node for a given direction.
-        Args:
-            direction (str): One of 'top', 'bottom', 'left', 'right'.
-        Returns:
-            Tuple[float, float]: The (x, y) coordinates of the anchor.
+        Get anchor point on node boundary for connection placement.
+        
+        Parameters
+        ----------
+        direction : str
+            Direction for anchor point location.
+            Options: 'top', 'bottom', 'left', 'right'
+            
+        Returns
+        -------
+        tuple of float
+            The (x, y) coordinates of the anchor point
+            
+        Examples
+        --------
+        >>> node = Rectangle((0, 0), 2, 1, "Test")
+        >>> top_anchor = node.get_anchor('top')
+        >>> print(top_anchor)
+        (0.0, 0.5)
         """
         x, y = self.center
         dx, dy = self.width / 2, self.height / 2
@@ -42,9 +88,20 @@ class Node:
 
     def draw(self, scheme: "FlowScheme") -> None:
         """
-        Base method to draw the node. Should be implemented by subclasses.
-        Args:
-            scheme (FlowScheme): The flow scheme to draw on.
+        Draw the node on the flowchart scheme.
+        
+        Abstract method that must be implemented by subclasses to define
+        how each specific node type should be rendered.
+        
+        Parameters
+        ----------
+        scheme : FlowScheme
+            The flowchart scheme object to draw on
+            
+        Raises
+        ------
+        NotImplementedError
+            If called on base Node class directly
         """
         raise NotImplementedError("Each subclass must implement draw.")
 

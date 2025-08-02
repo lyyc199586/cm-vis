@@ -1,6 +1,31 @@
 """
-This module provides basic tools for creating 3D schemes in CM-VIS.
-It includes classes for drawing 3D arrows, annotating dimensions, and adding boundary conditions.
+3D Schematic Diagram Tools
+==========================
+
+This module provides tools for creating 3D schematic diagrams in CM-VIS.
+It includes classes for drawing 3D arrows, annotating dimensions, and adding
+boundary conditions to 3D matplotlib plots.
+
+The module extends 2D schematic capabilities to three dimensions, supporting
+3D arrows, dimensional annotations, and 3D boundary condition visualization
+for engineering and scientific applications.
+
+Classes
+-------
+Arrow3D : 3D arrow representation for matplotlib
+Scheme3DBase : Base class for 3D schematic diagrams
+Scheme3D : Extended 3D scheme class with annotations and boundary conditions
+
+Examples
+--------
+>>> import matplotlib.pyplot as plt
+>>> from cm_vis.scheme import Scheme3D
+>>> 
+>>> fig = plt.figure()
+>>> ax = fig.add_subplot(111, projection='3d')
+>>> scheme3d = Scheme3D(ax)
+>>> scheme3d.add_arrow("latex-latex", xyz=[[0, 0, 0], [1, 1, 1]])
+>>> scheme3d.add_coord_axis()
 """
 
 import numpy as np
@@ -12,27 +37,66 @@ from typing import List, Optional, Tuple
 
 class Arrow3D(FancyArrowPatch):
     """
-    A class to represent a 3D arrow in Matplotlib.
-    Based on https://gist.github.com/WetHat/1d6cd0f7309535311a539b42cccca89c
+    3D arrow representation for matplotlib plots.
+    
+    This class extends FancyArrowPatch to create 3D arrows that can be
+    properly rendered in 3D matplotlib axes with correct projection
+    and depth ordering.
+    
+    Parameters
+    ----------
+    x0, y0, z0 : float
+        Coordinates of the arrow starting point
+    x1, y1, z1 : float
+        Coordinates of the arrow ending point
+    *args, **kwargs
+        Additional arguments passed to FancyArrowPatch
+        
+    Attributes
+    ----------
+    xyz : list
+        List containing start and end coordinates [[x0,y0,z0], [x1,y1,z1]]
+        
+    Notes
+    -----
+    Based on implementation from:
+    https://gist.github.com/WetHat/1d6cd0f7309535311a539b42cccca89c
+    
+    Examples
+    --------
+    >>> arrow = Arrow3D(0, 0, 0, 1, 1, 1, color='red', lw=2)
+    >>> ax.add_artist(arrow)
     """
     def __init__(self, x0: float, y0: float, z0: float, x1: float, y1: float, z1: float, *args, **kwargs):
         """
         Initialize a 3D arrow.
 
-        Args:
-            x0, y0, z0: Coordinates of the starting point.
-            x1, y1, z1: Coordinates of the ending point.
-            *args, **kwargs: Additional arguments for FancyArrowPatch.
+        Parameters
+        ----------
+        x0, y0, z0 : float
+            Coordinates of the starting point
+        x1, y1, z1 : float
+            Coordinates of the ending point
+        *args, **kwargs
+            Additional arguments for FancyArrowPatch
         """
         super().__init__((0, 0), (0, 0), *args, **kwargs)
         self.xyz = [[x0, y0, z0], [x1, y1, z1]]
         
     def draw(self, renderer):
         """
-        Draw the 3D arrow.
+        Draw the 3D arrow with proper 2D projection.
 
-        Args:
-            renderer: The renderer used for drawing.
+        Parameters
+        ----------
+        renderer : matplotlib.backend_bases.RendererBase
+            The renderer used for drawing
+            
+        Notes
+        -----
+        This method projects the 3D coordinates to 2D screen coordinates
+        using the current 3D axes transformation matrix, then draws the
+        arrow as a 2D patch.
         """
         (x0, y0, z0), (x1, y1, z1) = self.xyz
         xs, ys, zs = proj_transform((x0, x1), (y0, y1), (z0, z1), self.axes.M)
@@ -41,13 +105,22 @@ class Arrow3D(FancyArrowPatch):
         
     def do_3d_projection(self, renderer=None) -> float:
         """
-        Perform the 3D projection of the arrow.
+        Perform 3D projection for depth ordering.
 
-        Args:
-            renderer: The renderer used for projection.
-
-        Returns:
-            The minimum z-coordinate of the arrow.
+        Parameters
+        ----------
+        renderer : matplotlib.backend_bases.RendererBase, optional
+            The renderer used for projection
+            
+        Returns
+        -------
+        float
+            The minimum z-coordinate after projection, used for depth sorting
+            
+        Notes
+        -----
+        This method is called by matplotlib to determine drawing order
+        for 3D objects. Objects with smaller return values are drawn first.
         """
         (x0, y0, z0), (x1, y1, z1) = self.xyz
         xs, ys, zs = proj_transform((x0, x1), (y0, y1), (z0, z1), self.axes.M)
@@ -57,27 +130,72 @@ class Arrow3D(FancyArrowPatch):
 
 class Scheme3DBase:
     """
-    A base class for creating 3D schemes with arrows, text, and coordinate axes.
+    Base class for creating 3D schematic diagrams.
+    
+    This class provides fundamental functionality for creating 3D schematic
+    diagrams including arrows, text annotations, and coordinate axes.
+    It serves as the foundation for more specialized 3D diagram classes.
+    
+    Parameters
+    ----------
+    ax : matplotlib.axes._subplots.Axes3DSubplot
+        The matplotlib 3D axes object for drawing
+    lw : float, optional
+        Default line width for drawing elements (default: 0.4)
+        
+    Attributes
+    ----------
+    ax : matplotlib.axes._subplots.Axes3DSubplot
+        The 3D axes for drawing
+    lw : float
+        Default line width
+        
+    Examples
+    --------
+    >>> fig = plt.figure()
+    >>> ax = fig.add_subplot(111, projection='3d')
+    >>> scheme = Scheme3DBase(ax, lw=0.5)
+    >>> scheme.add_arrow("-latex", xyz=[[0,0,0], [1,0,0]])
     """
     def __init__(self, ax: plt.Axes, lw: float = 0.4):
         """
-        Initialize the 3D scheme.
+        Initialize the 3D scheme base.
 
-        Args:
-            ax: The Matplotlib 3D axes.
-            lw: Line width for drawing elements.
+        Parameters
+        ----------
+        ax : matplotlib.axes._subplots.Axes3DSubplot
+            The matplotlib 3D axes object
+        lw : float, optional
+            Line width for drawing elements (default: 0.4)
         """
         self.ax = ax
         self.lw = lw
         
     def add_arrow(self, type: str, xyz: List[List[float]], fc: Optional[str] = None):
         """
-        Add a 3D arrow to the plot.
-
-        Args:
-            type: The arrow style type.
-            xyz: Coordinates of the arrow as [[x0, y0, z0], [x1, y1, z1]].
-            fc: Face color of the arrow.
+        Add a 3D arrow to the diagram.
+        
+        Parameters
+        ----------
+        type : str
+            Type of arrow head. Common types include:
+            "->" : Simple arrow
+            "-latex" : LaTeX-style arrow  
+            "-stealth" : Stealth arrow
+        xyz : list of two lists
+            Start and end coordinates [[x0, y0, z0], [x1, y1, z1]]
+        fc : str, optional
+            Face color of the arrow head (default: None uses current color)
+            
+        Returns
+        -------
+        Arrow3D
+            The created 3D arrow object
+            
+        Examples
+        --------
+        >>> coords = [[0, 0, 0], [1, 0, 0]]  # From origin to (1,0,0)
+        >>> arrow = scheme.add_arrow("-latex", xyz=coords, fc='red')
         """
         if(fc is None):
             fc = 'k'
@@ -111,15 +229,33 @@ class Scheme3DBase:
     def add_text(self, xyz: List[float], text: str, offset: Optional[List[float]] = None, 
                  zdir: Optional[str] = None, textc: Optional[str] = None, boxfc: Optional[str] = None):
         """
-        Add text annotation to the plot.
-
-        Args:
-            xyz: Coordinates of the text location.
-            text: The text to display.
-            offset: Offset for the text location as [dx, dy, dz].
-            zdir: Direction of the text in 3D space.
-            textc: Color of the text.
-            boxfc: Background color of the text box.
+        Add 3D text annotation to the diagram.
+        
+        Parameters
+        ----------
+        xyz : list of float
+            3D coordinates [x, y, z] for text placement
+        text : str
+            The text string to display
+        offset : list of float, optional
+            3D offset [dx, dy, dz] from the base coordinates (default: None)
+        zdir : str, optional
+            Direction for text orientation in 3D space.
+            Options: 'x', 'y', 'z', None (default: None)
+        textc : str, optional  
+            Text color (default: None uses current color)
+        boxfc : str, optional
+            Background box face color (default: None for no box)
+            
+        Notes
+        -----
+        The text is positioned in 3D space and will be projected to 2D
+        based on the current viewing angle.
+        
+        Examples
+        --------
+        >>> scheme.add_text([1, 0, 0], "Point A", offset=[0.1, 0, 0])
+        >>> scheme.add_text([0, 1, 0], "Y-axis", zdir='y', textc='blue')
         """
         if(boxfc is None):
             boxfc = 'None'
@@ -140,14 +276,34 @@ class Scheme3DBase:
     def add_coord_axis(self, origin: List[float] = [0, 0, 0], length: List[float] = [1.0, 1.0, 1.0], 
                        text: List[str] = ['$x$', '$y$', '$z$'], textc: Optional[str] = None, shift: float = 1):
         """
-        Draw coordinate axes at a specified origin.
-
-        Args:
-            origin: Origin of the coordinate axes.
-            length: Length of each axis.
-            text: Labels for the axes.
-            textc: Color of the axis labels.
-            shift: Factor to shift the labels along the axes.
+        Draw 3D coordinate axes at a specified origin.
+        
+        Parameters
+        ----------
+        origin : list of float, optional
+            Origin point [x0, y0, z0] for the coordinate system (default: [0, 0, 0])
+        length : list of float, optional
+            Length of each axis [lx, ly, lz] (default: [1.0, 1.0, 1.0])
+        text : list of str, optional
+            Labels for x, y, z axes (default: ['$x$', '$y$', '$z$'])
+        textc : str, optional
+            Color for axis labels (default: None uses current color)
+        shift : float, optional
+            Text label offset factor from axis endpoints (default: 1)
+            
+        Notes
+        -----
+        Creates three arrows representing the coordinate axes with LaTeX-style
+        arrowheads and places text labels at the axis endpoints.
+        
+        Examples
+        --------
+        >>> # Standard coordinate system at origin
+        >>> scheme.add_coord_axis()
+        >>> 
+        >>> # Custom coordinate system
+        >>> scheme.add_coord_axis(origin=[1, 1, 1], length=[0.5, 0.5, 0.5],
+        ...                      text=['X', 'Y', 'Z'], textc='red')
         """
         for i in range(np.size(length)):
             xyto = origin.copy()
@@ -157,26 +313,72 @@ class Scheme3DBase:
 
 class Scheme3D(Scheme3DBase):
     """
-    A class for creating advanced 3D schemes with annotations and boundary conditions.
+    Advanced 3D schematic diagram creator with specialized annotation tools.
+    
+    This class extends Scheme3DBase to provide specialized functionality for
+    creating complex 3D diagrams including boundary condition indicators,
+    stress/displacement annotations, and advanced geometric elements.
+    
+    Inherits all functionality from Scheme3DBase and adds specialized methods
+    for engineering and scientific diagram creation.
+    
+    Parameters
+    ----------
+    ax : matplotlib.axes._subplots.Axes3DSubplot
+        The matplotlib 3D axes object for drawing
+    lw : float, optional
+        Default line width for drawing elements (default: 0.4)
+        
+    Examples
+    --------
+    >>> fig = plt.figure()
+    >>> ax = fig.add_subplot(111, projection='3d')
+    >>> scheme = Scheme3D(ax)
+    >>> scheme.add_coord_axis()
+    >>> scheme.add_bc_indicator([1, 0, 0], "Fixed")
     """
     def dim_dist(self, xyzfrom: List[float], xyzto: List[float], text: Optional[str] = None, 
                  zdir: Optional[str] = None, arrowfc: Optional[str] = None, 
                  textc: Optional[str] = None, boxfc: Optional[str] = None, offset: Optional[List[float]] = None):
         """
-        Annotate a dimension with text in the center.
-
-        Args:
-            xyzfrom: Starting coordinates of the dimension.
-            xyzto: Ending coordinates of the dimension.
-            text: Text to display (default is the distance).
-            zdir: Direction of the text in 3D space.
-            arrowfc: Face color of the arrows.
-            textc: Color of the text.
-            boxfc: Background color of the text box.
-            offset: Offset for the text location.
+        Create a dimension line with distance annotation between two points.
+        
+        Parameters
+        ----------
+        xyzfrom : list of float
+            Starting coordinates [x1, y1, z1] of the dimension line
+        xyzto : list of float
+            Ending coordinates [x2, y2, z2] of the dimension line
+        text : str, optional
+            Custom text to display (default: None calculates distance automatically)
+        zdir : str, optional
+            Direction for text orientation ('x', 'y', 'z', None)
+        arrowfc : str, optional
+            Face color of dimension arrows (default: None uses current color)
+        textc : str, optional
+            Text color (default: None uses current color)
+        boxfc : str, optional
+            Background box color for text (default: None for no background)
+        offset : list of float, optional
+            3D offset [dx, dy, dz] for text position from line center
+            
+        Notes
+        -----
+        Creates a double-headed arrow between two points with the distance
+        displayed at the center. If no custom text is provided, the
+        Euclidean distance is calculated and displayed.
+        
+        Examples
+        --------
+        >>> # Dimension line with automatic distance calculation
+        >>> scheme.dim_dist([0, 0, 0], [1, 0, 0])
+        >>> 
+        >>> # Custom dimension with text
+        >>> scheme.dim_dist([0, 0, 0], [0, 2, 0], text="Height", 
+        ...                textc='blue', arrowfc='red')
         """
         if(text is None):
-            dist = np.sqrt((xyzfrom[0] - xyzto[0])**2 + (xyzfrom[1] - xyzto[1])**2) + (xyzfrom[2] - xyzto[2])**2
+            dist = np.sqrt((xyzfrom[0] - xyzto[0])**2 + (xyzfrom[1] - xyzto[1])**2 + (xyzfrom[2] - xyzto[2])**2)
             text = str(np.round(dist, 2))
 
         if(boxfc is None):

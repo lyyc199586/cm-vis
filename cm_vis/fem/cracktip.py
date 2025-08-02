@@ -1,13 +1,70 @@
+"""
+Crack Tip Trajectory Analysis
+=============================
+
+This module provides tools for analyzing crack tip trajectories from
+simulation data. It includes functionality for smoothing trajectories,
+calculating crack lengths and speeds, and visualizing crack propagation.
+
+Classes
+-------
+CrackTipAnalyzer : Main class for crack tip trajectory analysis
+
+Notes
+-----
+Uses Savitzky-Golay filtering for trajectory smoothing and supports
+various crack propagation metrics calculation.
+"""
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 
 class CrackTipAnalyzer:
+    """
+    Analyze crack tip trajectories from simulation data.
+    
+    This class provides methods to load, smooth, and analyze crack tip
+    trajectory data. It supports calculation of crack lengths, speeds,
+    and velocities with optional trajectory smoothing.
+    
+    Parameters
+    ----------
+    filepath : str
+        Path to the CSV file containing raw crack tip trajectory data
+        
+    Attributes
+    ----------
+    filepath : str
+        Path to the trajectory data file
+    window_length : int or None
+        Savitzky-Golay filter window length
+    poly_order : int or None
+        Savitzky-Golay filter polynomial order
+    tip : pandas.DataFrame
+        Loaded trajectory data
+        
+    Examples
+    --------
+    >>> # Load and analyze crack tip trajectory
+    >>> analyzer = CrackTipAnalyzer("crack_trajectory.csv")
+    >>> analyzer.set_savgol_params(window_length=11, poly_order=3)
+    >>> 
+    >>> # Calculate smoothed trajectory and crack length
+    >>> smooth_traj = analyzer.calc_smooth_trajectory(plot=True)
+    >>> crack_length = analyzer.calc_crack_length(use_smoothed=True, plot=True)
+    """
+    
     def __init__(self, filepath: str):
         """
-        Initialize the CrackTipAnalyzer with a file containing raw crack tip trajectory.
-        :param filepath: Path to the CSV file containing raw crack tip trajectory.
+        Initialize the CrackTipAnalyzer with trajectory data.
+        
+        Parameters
+        ----------
+        filepath : str
+            Path to the CSV file containing raw crack tip trajectory data.
+            Expected format: columns for Time, Points:0, Points:1
         """
         self.filepath = filepath
         self.window_length = None
@@ -16,25 +73,61 @@ class CrackTipAnalyzer:
     
     def set_savgol_params(self, window_length: int, poly_order: int):
         """
-        Set the parameters for the Savitzky-Golay filter.
-        :param window_length: Length of the filter window (must be an odd number).
-        :param poly_order: Order of the polynomial used to fit the samples.
+        Set parameters for the Savitzky-Golay filter.
+        
+        Parameters
+        ----------
+        window_length : int
+            Length of the filter window (must be an odd number)
+        poly_order : int
+            Order of the polynomial used to fit the samples
+            
+        Raises
+        ------
+        ValueError
+            If window_length is not odd or if poly_order >= window_length
         """
+        if window_length % 2 == 0:
+            raise ValueError("window_length must be odd")
+        if poly_order >= window_length:
+            raise ValueError("poly_order must be less than window_length")
+            
         self.window_length = window_length
         self.poly_order = poly_order
     
     def _load_raw_trajectory(self):
         """
-        Load the tip coordinates from the raw trajectory file.
-        :return: DataFrame of tip coordinates and time.
+        Load tip coordinates from the raw trajectory file.
+        
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame containing time and tip coordinate data
         """
         raw_trajectory = pd.read_csv(self.filepath)
         return raw_trajectory
     
     def calc_smooth_trajectory(self, plot=False):
         """
-        Smooth the crack tip trajectory using the Savitzky-Golay filter.
-        :return: DataFrame of smoothed tip coordinates.
+        Smooth crack tip trajectory using Savitzky-Golay filter.
+        
+        Applies Savitzky-Golay filtering to both x and y coordinates of
+        the crack tip trajectory to reduce noise while preserving features.
+        
+        Parameters
+        ----------
+        plot : bool, optional
+            Whether to plot the smoothed trajectory (default: False)
+            
+        Returns
+        -------
+        pandas.DataFrame
+            DataFrame with smoothed tip coordinates
+            
+        Raises
+        ------
+        ValueError
+            If Savitzky-Golay parameters have not been set
         """
         if self.window_length is None or self.poly_order is None:
             raise ValueError("Savitzky-Golay parameters not set. Use set_savgol_params to set them.")
@@ -49,10 +142,27 @@ class CrackTipAnalyzer:
     
     def calc_crack_length(self, use_smoothed=False, plot=False):
         """
-        Calculate the cumulative crack length over time.
-        :param use_smoothed: Boolean indicating whether to use smoothed trajectory.
-        :param plot: Boolean indicating whether to plot the results.
-        :return: Series of cumulative crack lengths.
+        Calculate cumulative crack length over time.
+        
+        Computes the total crack length by integrating the incremental
+        distances between consecutive crack tip positions.
+        
+        Parameters
+        ----------
+        use_smoothed : bool, optional
+            Whether to use smoothed trajectory data (default: False)
+        plot : bool, optional
+            Whether to plot the crack length evolution (default: False)
+            
+        Returns
+        -------
+        pandas.Series
+            Series of cumulative crack lengths over time
+            
+        Notes
+        -----
+        The crack length is calculated as the cumulative sum of Euclidean
+        distances between consecutive crack tip positions.
         """
         if use_smoothed:
             coords = ['Smoothed:0', 'Smoothed:1']
@@ -75,10 +185,27 @@ class CrackTipAnalyzer:
     
     def calc_crack_speed(self, use_smoothed=False, plot=False):
         """
-        Calculate the crack tip speed over time.
-        :param use_smoothed: Boolean indicating whether to use smoothed trajectory.
-        :param plot: Boolean indicating whether to plot the results.
-        :return: Series of crack tip speeds.
+        Calculate crack tip speed over time.
+        
+        Computes the instantaneous crack propagation speed as the time
+        derivative of the crack length.
+        
+        Parameters
+        ----------
+        use_smoothed : bool, optional
+            Whether to use smoothed trajectory data (default: False)
+        plot : bool, optional
+            Whether to plot the crack speed evolution (default: False)
+            
+        Returns
+        -------
+        pandas.Series
+            Series of crack tip speeds over time
+            
+        Notes
+        -----
+        Speed is calculated as dL/dt where L is the crack length and t is time.
+        The first speed value is set to 0.
         """
         if use_smoothed:
             length_col = 'Smoothed Length'
@@ -135,9 +262,31 @@ class CrackTipAnalyzer:
 
     def plot_trajectory(self, ax=None, smoothed=False):
         """
-        Plot the raw or smoothed crack tip trajectory.
-        :param ax: The axes to plot on. If None, create a new figure.
-        :param smoothed: Boolean indicating whether to plot smoothed trajectory.
+        Plot the crack tip trajectory.
+        
+        Creates a 2D plot showing the path of the crack tip through space.
+        Can display either raw or smoothed trajectory data.
+        
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            The axes to plot on. If None, creates a new figure (default: None)
+        smoothed : bool, optional
+            Whether to plot smoothed trajectory data (default: False)
+            
+        Notes
+        -----
+        The plot includes appropriate labels, legend, and grid for clarity.
+        Aspect ratio is set to equal for accurate spatial representation.
+        
+        Examples
+        --------
+        >>> # Plot raw trajectory
+        >>> analyzer.plot_trajectory()
+        >>> 
+        >>> # Plot smoothed trajectory on existing axes
+        >>> fig, ax = plt.subplots()
+        >>> analyzer.plot_trajectory(ax=ax, smoothed=True)
         """
         if ax is None:
             fig, ax = plt.subplots()
@@ -159,11 +308,31 @@ class CrackTipAnalyzer:
 
     def plot_variable(self, variable_col, ylabel, use_smoothed, ax=None):
         """
-        Plot a variable (length, velocity) against time.
-        :param variable_col: Column name of the variable to plot.
-        :param ylabel: Label for the y-axis.
-        :param use_smoothed: Boolean indicating whether to use smoothed trajectory.
-        :param ax: The axes to plot on. If None, create a new figure.
+        Plot a calculated variable against time.
+        
+        Creates a time series plot for variables such as crack length,
+        speed, or velocity with appropriate styling and labels.
+        
+        Parameters
+        ----------
+        variable_col : str
+            Column name of the variable to plot from the tip DataFrame
+        ylabel : str
+            Label for the y-axis
+        use_smoothed : bool
+            Whether the plotted data comes from smoothed calculations
+        ax : matplotlib.axes.Axes, optional
+            The axes to plot on. If None, creates a new figure (default: None)
+            
+        Notes
+        -----
+        The plot title indicates whether smoothed or raw data is shown.
+        Grid is enabled for better readability of values.
+        
+        Examples
+        --------
+        >>> # Plot crack length evolution
+        >>> analyzer.plot_variable('Raw Length', 'Crack Length', False)
         """
         times = self.tip['Time']
         if ax is None:
@@ -180,18 +349,20 @@ class CrackTipAnalyzer:
         ax.legend()
         ax.grid(True)
 
-    def plot_crack_info(self, raw_lengths, smoothed_lengths, raw_speeds, smoothed_speeds, 
-                        raw_velocities_x, raw_velocities_y, smoothed_velocities_x, smoothed_velocities_y):
+    def plot_crack_info(self):
         """
-        Plot the raw and smoothed crack length, speed, and velocity information.
-        :param raw_lengths: Series of raw cumulative crack lengths.
-        :param smoothed_lengths: Series of smoothed cumulative crack lengths.
-        :param raw_speeds: Series of raw crack tip speeds.
-        :param smoothed_speeds: Series of smoothed crack tip speeds.
-        :param raw_velocities_x: Series of raw crack tip velocities in x direction.
-        :param smoothed_velocities_x: Series of smoothed crack tip velocities in x direction.
-        :param raw_velocities_y: Series of raw crack tip velocities in y direction.
-        :param smoothed_velocities_y: Series of smoothed crack tip velocities in y direction.
+        Plot comprehensive crack analysis information in a multi-panel figure.
+        
+        Creates a 3x2 subplot layout showing trajectory, lengths, speeds,
+        and velocity components for both raw and smoothed data.
+            
+        Notes
+        -----
+        Creates a comprehensive visualization with 6 subplots showing:
+        - Crack tip trajectory
+        - Crack length evolution
+        - Crack speed evolution  
+        - Velocity components over time
         """
         fig, axs = plt.subplots(3, 2, figsize=(15, 15))
 
@@ -243,8 +414,7 @@ class CrackTipAnalyzer:
         smoothed_velocities_x = self.calc_crack_velocity(0, use_smoothed=True)
         smoothed_velocities_y = self.calc_crack_velocity(1, use_smoothed=True)
 
-        self.plot_crack_info(raw_lengths, smoothed_lengths, raw_speeds, smoothed_speeds, 
-                             raw_velocities_x, raw_velocities_y, smoothed_velocities_x, smoothed_velocities_y)
+        self.plot_crack_info()
 
     def save_to_csv(self, output_filepath=None):
         """

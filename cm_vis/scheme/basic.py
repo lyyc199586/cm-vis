@@ -1,7 +1,29 @@
 """
+Schematic Diagram Creation Tools
+================================
+
 This module provides classes and methods for creating and annotating 
-schematic diagrams in CM-VIS. It includes functionality for 
-adding arrows, text, coordinate axes, paths, and boundary conditions.
+schematic diagrams in CM-VIS. It includes functionality for adding arrows, 
+text, coordinate axes, paths, and boundary conditions to matplotlib plots.
+
+The module supports both 2D schematic creation through the SchemeBase and 
+Scheme classes, with extensive customization options for scientific and 
+engineering diagrams.
+
+Classes
+-------
+SchemeBase : Base class for basic diagram elements
+Scheme : Extended class with advanced annotation capabilities
+
+Examples
+--------
+>>> import matplotlib.pyplot as plt
+>>> from cm_vis.scheme import Scheme
+>>> 
+>>> fig, ax = plt.subplots()
+>>> scheme = Scheme(ax)
+>>> scheme.add_coord_axis()
+>>> scheme.add_arrow("-latex", xy=[[0, 0], [1, 1]])
 """
 
 import numpy as np
@@ -14,16 +36,49 @@ from typing import List, Optional, Tuple, Union, Literal
 class SchemeBase:
     """
     Base class for creating schematic diagrams with matplotlib.
-    Provides methods for adding arrows, text, coordinate axes, and paths.
+    
+    This class provides fundamental methods for adding arrows, text, 
+    coordinate axes, and paths to matplotlib plots. It serves as the
+    foundation for more specialized schematic diagram classes.
+    
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Matplotlib axes object where the diagram will be drawn
+    lw : float, optional
+        Default line width for drawing elements (default: 0.4)
+        
+    Attributes
+    ----------
+    ax : matplotlib.axes.Axes
+        The matplotlib axes for drawing
+    x_len : float
+        Width of the axes plotting area
+    y_len : float  
+        Height of the axes plotting area
+    max_len : float
+        Maximum of x_len and y_len
+    lw : float
+        Default line width
+        
+    Examples
+    --------
+    >>> import matplotlib.pyplot as plt
+    >>> fig, ax = plt.subplots()
+    >>> scheme = SchemeBase(ax, lw=0.5)
+    >>> scheme.add_arrow("-latex", xy=[[0, 0], [1, 0]])
     """
     
     def __init__(self, ax, lw: float = 0.4) -> None:
         """
         Initialize the SchemeBase object.
 
-        Args:
-            ax (matplotlib.axes.Axes): Matplotlib axes object where the diagram will be drawn.
-            lw (float): Line width for drawing elements.
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            Matplotlib axes object where the diagram will be drawn
+        lw : float, optional
+            Line width for drawing elements (default: 0.4)
         """
         self.ax = ax
         self.x_len = ax.get_xlim()[1] - ax.get_xlim()[0]
@@ -44,16 +99,51 @@ class SchemeBase:
     ) -> None:
         """
         Add an arrow to the diagram.
+        
+        Creates various types of arrows including straight and curved arrows
+        with customizable styling options. Supports standard arrow types
+        like latex arrows, bar arrows, and combinations.
 
-        Args:
-            type (str): Arrow style (e.g., "-latex", "latex-latex").
-            xy (Optional[List[List[float]]]): Coordinates for a straight arrow, [[x0, y0], [x1, y1]].
-            path (Optional[Path]): Path object for a curved arrow.
-            fc (Optional[str]): Face color of the arrow.
-            ec (Optional[str]): Edge color of the arrow.
-            hw (Optional[float]): Head width of the arrow.
-            hl (Optional[float]): Head length of the arrow.
-            tw (Optional[float]): Tail width of the arrow.
+        Parameters
+        ----------
+        type : str
+            Arrow style specification. Common types include:
+            - "-latex" : Arrow with head at end
+            - "latex-" : Arrow with head at start  
+            - "latex-latex" : Arrows with heads at both ends
+            - "bar-bar" : Bar markers at both ends
+            - "-bar" : Bar marker at end only
+        xy : list of list of float, optional
+            Coordinates for straight arrow as [[x0, y0], [x1, y1]]
+        path : matplotlib.path.Path, optional
+            Path object for curved arrow
+        fc : str, optional
+            Face color of the arrow (default: black)
+        ec : str, optional
+            Edge color of the arrow (default: black)
+        hw : float, optional
+            Head width of the arrow (default: auto-scaled)
+        hl : float, optional
+            Head length of the arrow (default: auto-scaled)
+        tw : float, optional
+            Tail width of the arrow (default: auto-scaled)
+            
+        Raises
+        ------
+        ValueError
+            If neither xy nor path is provided
+            
+        Examples
+        --------
+        >>> # Simple arrow from origin to (1,1)
+        >>> scheme.add_arrow("-latex", xy=[[0, 0], [1, 1]])
+        >>> 
+        >>> # Curved arrow along a path
+        >>> from matplotlib.path import Path
+        >>> vertices = np.array([[0, 0], [0.5, 1], [1, 0]])
+        >>> codes = [Path.MOVETO, Path.CURVE3, Path.CURVE3]
+        >>> curved_path = Path(vertices, codes)
+        >>> scheme.add_arrow("latex-latex", path=curved_path, fc='red')
         """
         if(xy is None and path is None ):
             raise ValueError("Provide either xy=(xyfrom, xyto) or path!")
@@ -144,19 +234,47 @@ class SchemeBase:
         rotation: Optional[float] = None,
         offset: Optional[float] = None    ) -> None:
         """
-        Add text to the diagram.
+        Add text annotation to the diagram.
+        
+        Places text at specified coordinates with customizable styling
+        including colors, background box, rotation, and positioning options.
 
-        Args:
-            textx (float): X-coordinate of the text.
-            texty (float): Y-coordinate of the text.
-            text (str): Text content.
-            fs (Union[None, float, Literal]): Font size of the text.
-            textc (Optional[str]): Text color.
-            boxfc (Optional[str]): Background color of the text box.
-            boxec (Optional[str]): Edge color of the text box.
-            loc (Optional[str]): Location of the text relative to the coordinates.
-            rotation (Optional[float]): Rotation angle of the text.
-            offset (Optional[float]): Offset for positioning the text.
+        Parameters
+        ----------
+        textx : float
+            X-coordinate for text placement
+        texty : float
+            Y-coordinate for text placement
+        text : str
+            Text content to display
+        fs : float or str, optional
+            Font size as number or matplotlib size string
+            ('xx-small', 'x-small', 'small', 'medium', 'large', 'x-large', 'xx-large')
+        textc : str, optional
+            Text color (default: black)
+        boxfc : str, optional
+            Background color of text box (default: None for no background)
+        boxec : str, optional
+            Edge color of text box (default: None)
+        loc : str, optional
+            Text alignment relative to coordinates
+            ('center', 'left', 'right', 'top', 'bottom', etc.)
+        rotation : float, optional
+            Text rotation angle in degrees (default: None)
+        offset : float, optional
+            Position offset for fine-tuning placement (default: None)
+            
+        Examples
+        --------
+        >>> # Simple text annotation
+        >>> scheme.add_text(0.5, 0.5, "Center Point")
+        >>> 
+        >>> # Styled text with background
+        >>> scheme.add_text(1, 1, "Label", fs='large', textc='red', 
+        ...                 boxfc='white', boxec='black')
+        >>> 
+        >>> # Rotated text
+        >>> scheme.add_text(2, 2, "Rotated", rotation=45, loc='center')
         """
         
         textloc = None
