@@ -9,7 +9,7 @@ the FlowScheme class for managing and drawing flowcharts.
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Union, Literal
 from .basic import Scheme
 
 
@@ -19,14 +19,31 @@ class Node:
     Represents a generic node with a center, width, height, and optional text.
     """
 
-    def __init__(self, center: Tuple[float, float], width: float, height: float, text: str = "", fc="white", ec="black", textc="black") -> None:
+    def __init__(
+        self,
+        center: Tuple[float, float],
+        width: float,
+        height: float,
+        text: str = "",
+        textloc: Union[None, str, Tuple[float, float]] = "center",
+        fs: Union[
+            None,
+            float,
+            Literal['xx-small', 'x-small', 'small', 'medium', 'large', 'x-large', 'xx-large']
+        ] = "medium",
+        fc="white",
+        ec="black",
+        textc="black",
+    ) -> None:
         self.center = center
         self.width = width
         self.height = height
         self.text = text
+        self.textc = textc
+        self.textloc = textloc
         self.fc = fc
         self.ec = ec
-        self.textc = textc
+        self.fs = fs
 
     def get_anchor(self, direction: str) -> Tuple[float, float]:
         """
@@ -38,7 +55,12 @@ class Node:
         """
         x, y = self.center
         dx, dy = self.width / 2, self.height / 2
-        return {"top": (x, y + dy), "bottom": (x, y - dy), "left": (x - dx, y), "right": (x + dx, y)}[direction]
+        return {
+            "top": (x, y + dy),
+            "bottom": (x, y - dy),
+            "left": (x - dx, y),
+            "right": (x + dx, y),
+        }[direction]
 
     def draw(self, scheme: "FlowScheme") -> None:
         """
@@ -47,6 +69,41 @@ class Node:
             scheme (FlowScheme): The flow scheme to draw on.
         """
         raise NotImplementedError("Each subclass must implement draw.")
+
+    def _resolve_text_loc(self) -> Tuple[float, float]:
+        """
+        Resolve text anchor (tx, ty) according to self.textloc.
+        - If str: supports 'center', 'upper', 'lower', 'left', 'right',
+                  'upper left', 'upper right', 'lower left', 'lower right'
+        - If tuple: (dx, dy) relative to node width/height (0.5 reaches edges).
+        - If None: treated as 'center'.
+        """
+        x, y = self.center
+        w, h = self.width, self.height
+
+        pos_map = {
+            "center":      (0.0,  0.0),
+            "upper":       (0.0,  +0.5),
+            "lower":       (0.0,  -0.5),
+            "left":        (-0.5,  0.0),
+            "right":       (+0.5,  0.0),
+            "upper left":  (-0.5, +0.5),
+            "upper right": (+0.5, +0.5),
+            "lower left":  (-0.5, -0.5),
+            "lower right": (+0.5, -0.5),
+        }
+
+        if self.textloc is None:
+            dx, dy = (0.0, 0.0)
+        elif isinstance(self.textloc, str):
+            dx, dy = pos_map.get(self.textloc.lower().strip(), (0.0, 0.0))
+        elif isinstance(self.textloc, tuple) and len(self.textloc) == 2:
+            dx, dy = self.textloc
+        else:
+            raise ValueError(f"Invalid text location: {self.textloc}.")
+
+        # scale by width/height so that 0.5 lands at edges
+        return x + dx * w, y + dy * h
 
 
 class Rectangle(Node):
@@ -59,9 +116,14 @@ class Rectangle(Node):
         dx = self.width / 2
         dy = self.height / 2
         rect = [(x - dx, y - dy), (x + dx, y - dy), (x + dx, y + dy), (x - dx, y + dy)]
-        scheme.ax.add_patch(mpatches.Polygon(rect, closed=True, facecolor=self.fc, edgecolor=self.ec, lw=scheme.lw))
+        scheme.ax.add_patch(
+            mpatches.Polygon(
+                rect, closed=True, facecolor=self.fc, edgecolor=self.ec, lw=scheme.lw
+            )
+        )
         if self.text:
-            scheme.add_text(x, y, self.text, loc="center")
+            tx, ty = self._resolve_text_loc()
+            scheme.add_text(tx, ty, self.text, loc="center", fs=self.fs, textc=self.textc)
 
 
 class Cube(Node):
@@ -69,8 +131,30 @@ class Cube(Node):
     Cube node for flowcharts (drawn as a 2.5D cube projection).
     """
 
-    def __init__(self, center, width, height, text="", fc="white", ec="black", textc="black", side_color="lightgray", top_color="gray", depth=0.15):
-        super().__init__(center, width, height, text, fc, ec, textc)
+    def __init__(
+        self,
+        center,
+        width,
+        height,
+        text="",
+        fc="white",
+        ec="black",
+        textc="black",
+        side_color="lightgray",
+        top_color="gray",
+        depth=0.15,
+        **kwargs,  # allow textloc, fs, etc. to pass to Node
+    ):
+        super().__init__(
+            center=center,
+            width=width,
+            height=height,
+            text=text,
+            fc=fc,
+            ec=ec,
+            textc=textc,
+            **kwargs,
+        )
         self.side_color = side_color
         self.top_color = top_color
         self.depth = depth
@@ -87,13 +171,16 @@ class Cube(Node):
         dx = self.width / 2
         dy = self.height / 2
         offset = self.depth * self.width
-        return {"top": (x, y + dy), "bottom": (x, y - dy - offset / 2), "left": (x - dx - offset / 2, y), "right": (x + dx, y)}[direction]
+        return {
+            "top": (x, y + dy),
+            "bottom": (x, y - dy - offset / 2),
+            "left": (x - dx - offset / 2, y),
+            "right": (x + dx, y),
+        }[direction]
 
     def draw(self, scheme: "FlowScheme") -> None:
         """
         Draw the cube node as a 2.5D projection.
-        Args:
-            scheme (FlowScheme): The flow scheme to draw on.
         """
         x, y = self.center
         dx = self.width / 2
@@ -103,16 +190,27 @@ class Cube(Node):
         y = y - offset / 2
 
         front = [(x - dx, y - dy), (x + dx, y - dy), (x + dx, y + dy), (x - dx, y + dy)]
-        top = [(x - dx, y + dy), (x + dx, y + dy), (x + dx + offset, y + dy + offset), (x - dx + offset, y + dy + offset)]
-        side = [(x + dx, y - dy), (x + dx + offset, y - dy + offset), (x + dx + offset, y + dy + offset), (x + dx, y + dy)]
+        top = [
+            (x - dx, y + dy),
+            (x + dx, y + dy),
+            (x + dx + offset, y + dy + offset),
+            (x - dx + offset, y + dy + offset),
+        ]
+        side = [
+            (x + dx, y - dy),
+            (x + dx + offset, y - dy + offset),
+            (x + dx + offset, y + dy + offset),
+            (x + dx, y + dy),
+        ]
 
         style = {"edgecolor": self.ec, "lw": scheme.lw, "joinstyle": "bevel"}
-        scheme.ax.add_patch(mpatches.Polygon(top, closed=True, facecolor=self.top_color, **style))
-        scheme.ax.add_patch(mpatches.Polygon(side, closed=True, facecolor=self.side_color, **style))
-        scheme.ax.add_patch(mpatches.Polygon(front, closed=True, facecolor=self.fc, **style))
+        scheme.ax.add_patch(mpatches.Polygon(top,   closed=True, facecolor=self.top_color,  **style))
+        scheme.ax.add_patch(mpatches.Polygon(side,  closed=True, facecolor=self.side_color, **style))
+        scheme.ax.add_patch(mpatches.Polygon(front, closed=True, facecolor=self.fc,         **style))
 
         if self.text:
-            scheme.add_text(x, y, self.text, textc=self.textc, loc="center")
+            tx, ty = self._resolve_text_loc()
+            scheme.add_text(tx, ty, self.text, loc="center", fs=self.fs, textc=self.textc)
 
 
 class Diamond(Node):
@@ -125,9 +223,14 @@ class Diamond(Node):
         dx = self.width / 2
         dy = self.height / 2
         diamond = [(x, y + dy), (x + dx, y), (x, y - dy), (x - dx, y)]
-        scheme.ax.add_patch(mpatches.Polygon(diamond, closed=True, facecolor=self.fc, edgecolor=self.ec, lw=scheme.lw))
+        scheme.ax.add_patch(
+            mpatches.Polygon(
+                diamond, closed=True, facecolor=self.fc, edgecolor=self.ec, lw=scheme.lw
+            )
+        )
         if self.text:
-            scheme.add_text(x, y, self.text, loc="center")
+            tx, ty = self._resolve_text_loc()
+            scheme.add_text(tx, ty, self.text, loc="center", fs=self.fs, textc=self.textc)
 
 
 class Ellipse(Node):
@@ -137,10 +240,13 @@ class Ellipse(Node):
 
     def draw(self, scheme: "FlowScheme") -> None:
         x, y = self.center
-        ellipse = mpatches.Ellipse((x, y), width=self.width, height=self.height, facecolor=self.fc, edgecolor=self.ec, lw=scheme.lw)
+        ellipse = mpatches.Ellipse(
+            (x, y), width=self.width, height=self.height, facecolor=self.fc, edgecolor=self.ec, lw=scheme.lw
+        )
         scheme.ax.add_patch(ellipse)
         if self.text:
-            scheme.add_text(x, y, self.text, loc="center")
+            tx, ty = self._resolve_text_loc()
+            scheme.add_text(tx, ty, self.text, loc="center", fs=self.fs, textc=self.textc)
 
 
 class Parallelogram(Node):
@@ -154,14 +260,30 @@ class Parallelogram(Node):
         dy = self.height / 2
         shift = 0.1 * self.width
 
-        poly = [(x - dx - shift, y - dy), (x + dx - shift, y - dy), (x + dx + shift, y + dy), (x - dx + shift, y + dy)]
+        poly = [
+            (x - dx - shift, y - dy),
+            (x + dx - shift, y - dy),
+            (x + dx + shift, y + dy),
+            (x - dx + shift, y + dy),
+        ]
 
-        scheme.ax.add_patch(mpatches.Polygon(poly, closed=True, facecolor=self.fc, edgecolor=self.ec, lw=scheme.lw))
+        scheme.ax.add_patch(
+            mpatches.Polygon(
+                poly, closed=True, facecolor=self.fc, edgecolor=self.ec, lw=scheme.lw
+            )
+        )
         if self.text:
-            scheme.add_text(x, y, self.text, loc="center")
+            tx, ty = self._resolve_text_loc()
+            scheme.add_text(tx, ty, self.text, loc="center", fs=self.fs, textc=self.textc)
 
 
-shape_registry: Dict[str, type] = {"cube": Cube, "rectangle": Rectangle, "diamond": Diamond, "ellipse": Ellipse, "parallelogram": Parallelogram}
+shape_registry: Dict[str, type] = {
+    "cube": Cube,
+    "rectangle": Rectangle,
+    "diamond": Diamond,
+    "ellipse": Ellipse,
+    "parallelogram": Parallelogram,
+}
 
 
 class FlowScheme(Scheme):
@@ -174,7 +296,16 @@ class FlowScheme(Scheme):
         super().__init__(ax, lw)
         self.nodes: Dict[str, Node] = {}
 
-    def add_node(self, name: str, shape: str, center: Tuple[float, float], width: float, height: float, text: str = "", **kwargs) -> None:
+    def add_node(
+        self,
+        name: str,
+        shape: str,
+        center: Tuple[float, float],
+        width: float,
+        height: float,
+        text: str = "",
+        **kwargs,
+    ) -> None:
         """
         Add a node to the flowchart.
         Args:
@@ -217,10 +348,7 @@ class FlowScheme(Scheme):
         # arrow direction
         delta = pt1 - pt0
         norm = np.linalg.norm(delta)
-        if norm > 1e-12:
-            unit = delta / norm
-        else:
-            unit = np.zeros_like(delta)
+        unit = delta / norm if norm > 1e-12 else np.zeros_like(delta)
 
         # apply offsets
         pt0_adj = pt0 + unit * tail_offset
@@ -241,10 +369,10 @@ class FlowScheme(Scheme):
             x1, y1 = path_pts[idx + 1]
             mx, my = (x0 + x1) / 2, (y0 + y1) / 2
             dx, dy = x1 - x0, y1 - y0
-            norm = np.hypot(dx, dy)
-            if norm == 0:
+            norm2 = np.hypot(dx, dy)
+            if norm2 == 0:
                 offset_x = offset_y = 0
             else:
-                offset_x = -dy / norm * label_offset * self.max_len
-                offset_y = dx / norm * label_offset * self.max_len
+                offset_x = -dy / norm2 * label_offset * self.max_len
+                offset_y =  dx / norm2 * label_offset * self.max_len
             self.add_text(mx + offset_x, my + offset_y, label, loc="center", fs="small")
