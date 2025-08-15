@@ -1,3 +1,29 @@
+"""
+Strength Surface Generation
+===========================
+
+This module provides tools for generating strength surface data for various
+material failure criteria. It supports classic criteria like Von Mises and
+Drucker-Prager, as well as advanced phase field nucleation models.
+
+The StrengthSurface class generates 3D strength surface data that can be
+used for visualization and analysis of material failure envelopes.
+
+Classes
+-------
+StrengthSurface : Generate strength surface data for various failure criteria
+
+Examples
+--------
+>>> # Generate Von Mises strength surface
+>>> vms_surface = StrengthSurface("steel", "VMS", [250], [-500, 500, 101])
+>>> data = vms_surface.gen()
+>>> 
+>>> # Generate Drucker-Prager surface  
+>>> dp_surface = StrengthSurface("concrete", "DRUCKER", [50, 200], [-300, 300, 151])
+>>> data = dp_surface.gen(data_dir="./output")
+"""
+
 # generate strength surface data of various types
 import os
 import sys
@@ -6,23 +32,82 @@ import matplotlib.pyplot as plt
 from skimage.measure import find_contours
 
 class StrengthSurface:
-    """generate strength surface data of certain types"""
+    """
+    Generate strength surface data for various failure criteria.
+    
+    This class computes 3D strength surface data for different material
+    failure criteria including Von Mises, Drucker-Prager, and various
+    phase field nucleation models. The output can be used for 3D
+    visualization and analysis.
+    
+    Parameters
+    ----------
+    mname : str
+        Material name for identification
+    type : str
+        Strength surface type. Supported types:
+        - 'VMS' : Von Mises yield surface
+        - 'DRUCKER' : Drucker-Prager strength surface
+        - 'ISOTROPIC' : Isotropic phase field model
+        - 'VOLDEV' : Volumetric-deviatoric split phase field
+        - 'SPECTRAL' : Spectral split phase field model
+        - 'KLBFNUC' : Kumar et al. (2020) nucleation model
+        - 'KLRNUC' : Kumar et al. (2022) nucleation model  
+        - 'LDLNUC' : LDL nucleation model
+    props : list
+        Material properties required for the selected model type
+    srange : list of float
+        Stress range specification as [min_stress, max_stress, num_points]
+        
+    Attributes
+    ----------
+    mname : str
+        Material name
+    type : str
+        Strength surface type
+    props : list
+        Material properties
+    range : list
+        Stress range specification
+        
+    Notes
+    -----
+    Property requirements by model type:
+    
+    - 'VMS': [sigma_y] - yield strength
+    - 'DRUCKER': [sigma_ts, sigma_cs] - tensile and compressive strengths
+    - 'ISOTROPIC': [sigma_ts, mu, K] - tensile strength, shear modulus, bulk modulus
+    - 'VOLDEV': [sigma_ts, mu, K] - tensile strength, shear modulus, bulk modulus
+    - 'SPECTRAL': [sigma_ts, mu, K] - tensile strength, shear modulus, bulk modulus
+    - 'KLBFNUC': [sigma_ts, sigma_cs, mu, K, Gc, ell, delta] - extended properties
+    - 'KLRNUC': [sigma_ts, sigma_cs, mu, K, Gc, ell, delta] - extended properties
+    - 'LDLNUC': [sigma_ts, sigma_cs, mu, K, Gc, ell, h] - extended properties
+        
+    Examples
+    --------
+    >>> # Create Von Mises surface for steel
+    >>> steel = StrengthSurface("steel", "VMS", [250.0], [-400, 400, 101])
+    >>> vms_data = steel.gen()
+    >>> 
+    >>> # Create Drucker-Prager surface for concrete
+    >>> concrete = StrengthSurface("concrete", "DRUCKER", [4.0, 40.0], [-50, 50, 101])
+    >>> dp_data = concrete.gen(data_dir="./surfaces")
+    """
 
     def __init__(self, mname:str, type:str, props:list, srange:list[float]) -> None:
         """
-        mname: material name
-        type: strength surface type
-        props: material properties needed
-        srange: [xmin, xmax, num]
-        type                props
-        'VMS'               [sigma_y]
-        'DRUCKER'           [sigma_ts, sigma_cs]
-        'ISOTROPIC'         [sigma_ts, mu, K]
-        'VOLDEV'            [sigma_ts, mu, K]
-        'SPECTRAL'          [sigma_ts, mu, K]
-        'KLBFNUC'           [sigma_ts, sigma_cs, mu, K, Gc, ell, delta]
-        'KLRNUC'            [sigma_ts, sigma_cs, mu, K, Gc, ell, delta]
-        'LDLNUC'            [sigma_ts, sigma_cs, mu, K, Gc, ell, h]
+        Initialize the StrengthSurface generator.
+        
+        Parameters
+        ----------
+        mname : str
+            Material name for identification
+        type : str
+            Strength surface type identifier
+        props : list
+            Material properties required for the specified model
+        srange : list of float
+            Stress range as [min_stress, max_stress, num_points]
         """
         self.mname = mname
         self.type = type
@@ -30,20 +115,77 @@ class StrengthSurface:
         self.range = srange
 
     def gen(self, data_dir=None):
-        """ if data_dir is not None, store data.npy to data_dir as:
-                npy_data: './data_dir/ss_{mname}_{type}_props{props}_srange{srange}.npy' """
+        """
+        Generate the strength surface data.
+        
+        Computes a 3D strength surface based on the specified failure
+        criterion and material properties. The surface is evaluated
+        on a cubic grid in principal stress space.
+        
+        Parameters
+        ----------
+        data_dir : str, optional
+            Directory to save the generated data. If provided, saves
+            data as .npy file with descriptive filename
+            
+        Returns
+        -------
+        numpy.ndarray
+            3D array containing the strength surface function values
+            Shape: (num_points, num_points, num_points)
+            
+        Notes
+        -----
+        The output file naming convention (when data_dir is specified):
+        'ss_{mname}_{type}_props{props}_srange{srange}.npy'
+        
+        Examples
+        --------
+        >>> surface = StrengthSurface("steel", "VMS", [250], [-400, 400, 101])
+        >>> data = surface.gen(data_dir="./output")
+        >>> print(f"Surface shape: {data.shape}")
+        """
         def vms(s1, s2, s3, sigma_y):
-            """calculate Von Mises yield surface
-            props : [sigma_y]"""
+            """
+            Calculate Von Mises yield surface.
+            
+            Parameters
+            ----------
+            s1, s2, s3 : numpy.ndarray
+                Principal stress components
+            sigma_y : float
+                Yield strength (single property)
+                
+            Returns
+            -------
+            numpy.ndarray
+                Yield function values (f <= 0 for yielding)
+            """
             sigma_v = np.sqrt(0.5 * ((s1 - s2) ** 2 + (s2 - s3) ** 2 + (s3 - s1) ** 2))
             f = sigma_v - sigma_y
 
             return f
 
         def drucker(s1, s2, s3, sts, scs):
-            """calculate Drucker-Prager strength surface:
-            f = alpha*I1 + sqrt(J2) - k
-            props : [sigma_ts, sigma_cs]"""
+            """
+            Calculate Drucker-Prager strength surface.
+            
+            Implements f = alpha*I1 + sqrt(J2) - k criterion.
+            
+            Parameters
+            ----------
+            s1, s2, s3 : numpy.ndarray
+                Principal stress components
+            sts : float
+                Tensile strength 
+            scs : float
+                Compressive strength
+                
+            Returns
+            -------
+            numpy.ndarray
+                Strength function values (f <= 0 for failure)
+            """
             I1 = s1 + s2 + s3
             J2 = 1 / 6 * ((s1 - s2) ** 2 + (s2 - s3) ** 2 + (s3 - s1) ** 2)
             f = (

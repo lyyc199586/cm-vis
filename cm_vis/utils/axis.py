@@ -1,17 +1,66 @@
+"""
+Axis Utilities for Scientific Plots
+===================================
+
+This module provides utility functions for customizing matplotlib axes
+to create scientific and engineering style plots with custom axis lines,
+origins, and arrow-style axis indicators.
+
+Functions
+---------
+axis_line : Create custom axis lines with arrows and custom origins
+
+Examples
+--------
+>>> import matplotlib.pyplot as plt
+>>> from cm_vis.utils import axis_line
+>>> 
+>>> fig, ax = plt.subplots()
+>>> ax.plot([-2, 2], [1, 4])
+>>> axis_line(ax, origin=[0, 0], labels=['X', 'Y'])
+"""
+
 import numpy as np
 from matplotlib.patches import FancyArrowPatch, ArrowStyle
 
 def axis_line(ax, lw=0.4, origin=[0, 0], labels=None, arrowfc='k', offset=0.05):
     """
-    Set the axes of the given matplotlib Axes object to intersect at the specified position (x, y)
-    and point in the specified directions given by vectors.
+    Create custom axis lines with arrows intersecting at specified origin.
     
-    Parameters:
-    ax (matplotlib.axes.Axes): The axes object to modify.
-    origin [float, float]: The x and y-coordinate of the intersection point.
-    lw (float): Line width of the arrows.
-    arrowfc (str): Face color of the arrows.
-    offset (float): Ratio to extend the axis limits (0.0, 1.0).
+    This function modifies a matplotlib axes object to display custom axis
+    lines with arrow heads that intersect at a specified point, commonly
+    used in scientific and engineering plots.
+    
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axes object to modify
+    lw : float, optional
+        Line width of the arrow axes (default: 0.4)
+    origin : list of float, optional
+        The [x, y] coordinates of the axis intersection point (default: [0, 0])
+    labels : list of str, optional
+        Axis labels as [x_label, y_label]. If None, no labels are added
+    arrowfc : str, optional
+        Face color of the arrow heads (default: 'k' for black)
+    offset : float, optional
+        Ratio to extend the axis limits beyond data range (0.0-1.0, default: 0.05)
+        
+    Notes
+    -----
+    This function hides the default matplotlib spines and ticks, replacing them
+    with custom arrow-style axes. The axis limits are automatically adjusted
+    to ensure the origin point is visible with the specified offset.
+    
+    Examples
+    --------
+    >>> # Create a plot with custom axes at origin
+    >>> fig, ax = plt.subplots()
+    >>> ax.plot([-1, 3], [-2, 2])
+    >>> axis_line(ax, origin=[0, 0], labels=['Distance (m)', 'Force (N)'])
+    >>> 
+    >>> # Custom styling with different origin
+    >>> axis_line(ax, lw=0.6, origin=[1, 1], arrowfc='red', offset=0.1)
     """
     # Set the spines to be at the specified position
     ax.spines['left'].set_position(('data', origin[0]))

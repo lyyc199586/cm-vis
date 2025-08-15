@@ -1,3 +1,22 @@
+"""
+FEM Results Visualization
+=========================
+
+This module provides the FEMPlotter class for visualizing finite element
+analysis results on 2D meshes. It supports plotting nodal and elemental
+variables on triangular and quadrilateral elements with proper scaling
+and color mapping.
+
+Classes
+-------
+FEMPlotter : Main class for plotting FEM variables on mesh
+
+Notes
+-----
+Currently optimized for 2D visualization. Requires mesh data in netCDF format
+compatible with MOOSE/Exodus format.
+"""
+
 # use matplotlib to do simple plots with FEM mesh and variable
 
 import numpy as np
@@ -7,11 +26,51 @@ from matplotlib.collections import PolyCollection
 
 
 class FEMPlotter:
-    """plot variable on FEM mesh (currently only 2D)"""
+    """
+    Plot variable fields on finite element meshes (currently 2D only).
+    
+    This class provides methods to visualize nodal and elemental variables
+    on finite element meshes with proper interpolation and color mapping.
+    Supports both triangular and quadrilateral elements.
+    
+    Parameters
+    ----------
+    model : object
+        NetCDF dataset containing mesh and variable information
+    ax : matplotlib.axes.Axes, optional
+        Matplotlib axes for plotting. If None, creates new axes.
+        
+    Attributes
+    ----------
+    model : object
+        Reference to the mesh/data model
+    ax : matplotlib.axes.Axes
+        Plotting axes
+        
+    Examples
+    --------
+    >>> import matplotlib.pyplot as plt
+    >>> from cm_vis.fem import Exodus, FEMPlotter
+    >>> 
+    >>> # Load exodus file and create plotter
+    >>> exo = Exodus("simulation.e")
+    >>> fig, ax = plt.subplots()
+    >>> plotter = FEMPlotter(exo, ax)
+    >>> 
+    >>> # Plot temperature field at time step 10
+    >>> plotter.plot("temperature", tstep=10, cmap="coolwarm")
+    """
 
     def __init__(self, model, ax=None) -> None:
-        """model: netCDF dataset
-        ax: if None, generate a matplotlib ax
+        """
+        Initialize the FEM plotter.
+        
+        Parameters
+        ----------
+        model : object
+            NetCDF dataset containing mesh and field data
+        ax : matplotlib.axes.Axes, optional
+            Matplotlib axes for plotting. If None, generates new axes.
         """
         self.model = model
         if ax is None:
@@ -20,12 +79,47 @@ class FEMPlotter:
         self.ax.set(aspect="equal")
 
     def plot(self, var=None, tstep=0, block_id=None, clim=None, cmap=None, scale=None, **kwargs):
-        """block_id: if None, plot over all blocks, return (ax, [p1, p2, ..]),
-        otherwise return plot only block at block_id, return (ax, p)
-        var: variable to plot, numpy ndarray"
-        clim: if None, use [var_max, var_min]
-        cmap: if None, use coolwarm
-        scale = [scale_x, scale_y, scale_z]: scale the coord of the mesh in x,y and z
+        """
+        Plot a variable field on the finite element mesh.
+        
+        This method visualizes nodal or elemental variables on the mesh with
+        appropriate interpolation and color mapping. Supports both single block
+        and multi-block plotting.
+        
+        Parameters
+        ----------
+        var : str or np.ndarray, optional
+            Variable name (str) or variable data (ndarray) to plot.
+            If None, plots mesh wireframe only.
+        tstep : int, optional
+            Time step index for variable extraction (default: 0)
+        block_id : int, optional
+            Element block ID. If None, plots all blocks (default: None)
+        clim : tuple, optional
+            Color limits as (vmin, vmax). If None, uses data range
+        cmap : str or matplotlib.colors.Colormap, optional
+            Colormap for visualization. If None, uses 'coolwarm'
+        scale : list, optional
+            Mesh coordinate scaling as [scale_x, scale_y, scale_z]
+        **kwargs
+            Additional arguments passed to matplotlib plotting functions
+            
+        Returns
+        -------
+        tuple
+            - If block_id is None: (ax, [patch_list]) for all blocks
+            - If block_id specified: (ax, patch) for single block
+            
+        Examples
+        --------
+        >>> # Plot temperature field on all blocks
+        >>> ax, patches = plotter.plot("temperature", tstep=10)
+        >>> 
+        >>> # Plot stress on specific block with custom colormap
+        >>> ax, patch = plotter.plot("stress", block_id=1, cmap="plasma")
+        >>> 
+        >>> # Plot mesh wireframe only
+        >>> ax, patch = plotter.plot()
         """
 
         def quad_to_tri(quad):
