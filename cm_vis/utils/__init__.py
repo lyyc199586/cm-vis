@@ -25,5 +25,6 @@ Examples
 """
 
 from .axis import axis_line
+from .image import crop
 
-__all__ = ['axis_line']
+__all__ = ['axis_line', 'crop']
