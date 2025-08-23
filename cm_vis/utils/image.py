@@ -2,54 +2,88 @@ import numpy as np
 
 def crop(
     img: np.ndarray,
-    thresh: float = 0.95,
+    *,
+    alpha_thresh: float = 1/255,   # Content if alpha > threshold
+    white_thresh: float = 0.95,    # For white background: content = gray < white_thresh
+    black_thresh: float = 0.05,    # For black background: content = gray > black_thresh
     margin: int = 0,
-    verbose: bool = False
+    verbose: bool = True
 ) -> np.ndarray:
     """
-    Crop the image by removing nearly-white or transparent borders.
+    cropping function:
+    - If image has an alpha channel, use it to detect content (transparent = background).
+    - If no alpha channel, automatically detect black/white background from borders.
+    - Supports margin, preserves original dtype, and handles edge cases.
 
     Parameters
     ----------
     img : np.ndarray
-        Input image array of shape (H, W, C), with 3 or 4 channels (RGB or RGBA).
-    thresh : float, optional
-        Threshold (0-1) to consider a pixel as background. Default is 0.95.
+        Input image of shape (H, W, C), with C=3 (RGB) or C=4 (RGBA).
+    alpha_thresh : float, optional
+        Threshold for alpha channel to consider a pixel as content. Default: 1/255.
+    white_thresh : float, optional
+        Threshold for content detection when background is white. Default: 0.95.
+    black_thresh : float, optional
+        Threshold for content detection when background is black. Default: 0.05.
     margin : int, optional
-        Number of pixels to retain around the detected content region. Default is 0.
+        Extra pixels to keep around the detected bounding box. Default: 0.
     verbose : bool, optional
-        If True, print warning when nothing is cropped.
+        If True, print diagnostic messages.
 
     Returns
     -------
     np.ndarray
-        Cropped image containing only the relevant content.
+        Cropped image with the same dtype as the input.
     """
-    if img.dtype != np.float32 and img.dtype != np.float64:
-        img_norm = img / 255.0
-    else:
+    if img.ndim != 3 or img.shape[2] not in (3, 4):
+        raise ValueError("img must be (H, W, C) with C=3 (RGB) or C=4 (RGBA).")
+    H, W, C = img.shape
+    orig_dtype = img.dtype
+
+    # Normalize to [0,1] for detection
+    if img.dtype in (np.float32, np.float64):
         img_norm = img
-
-    if img.shape[2] == 4:
-        # Use RGB * alpha if alpha channel exists
-        gray = np.mean(img_norm[..., :3], axis=2) * img_norm[..., 3]
     else:
-        gray = np.mean(img_norm[..., :3], axis=2)
+        img_norm = img.astype(np.float32) / 255.0
 
-    mask = gray < thresh
+    rgb = img_norm[..., :3]
+    gray = rgb.mean(axis=2)
 
-    if not np.any(mask):
+    if C == 4:
+        # Use alpha channel if available
+        alpha = img_norm[..., 3]
+        content_mask = alpha > alpha_thresh
+    else:
+        # Estimate background brightness from border pixels (median is more robust)
+        border = np.concatenate([gray[0, :], gray[-1, :], gray[:, 0], gray[:, -1]])
+        bg_med = float(np.median(border))
+        if bg_med > 0.5:
+            # White background → content is darker
+            content_mask = gray < white_thresh
+        else:
+            # Black background → content is brighter
+            content_mask = gray > black_thresh
+
+    # Handle corner cases
+    if not np.any(content_mask):
         if verbose:
-            print("Warning: No pixels below threshold, returning original image.")
+            print("crop_smart: no content detected; returning original image.")
+        return img
+    if np.all(content_mask):
+        if verbose:
+            print("crop_smart: content covers entire image; returning original image.")
         return img
 
-    coords = np.argwhere(mask)
+    coords = np.argwhere(content_mask)
     y0, x0 = coords.min(axis=0)
     y1, x1 = coords.max(axis=0) + 1
 
-    y0 = max(y0 - margin, 0)
-    x0 = max(x0 - margin, 0)
-    y1 = min(y1 + margin, img.shape[0])
-    x1 = min(x1 + margin, img.shape[1])
+    if margin:
+        y0 = max(y0 - margin, 0)
+        x0 = max(x0 - margin, 0)
+        y1 = min(y1 + margin, H)
+        x1 = min(x1 + margin, W)
 
-    return img[y0:y1, x0:x1]
+    cropped = img[y0:y1, x0:x1]
+    
+    return cropped
