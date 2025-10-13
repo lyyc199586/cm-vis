@@ -26,5 +26,11 @@ Examples
 
 from .axis import axis_line
 from .image import crop
+from .units import figsize, to_inch
 
-__all__ = ['axis_line', 'crop']
+__all__ = [
+    'axis_line',
+    'crop',
+    'figsize',
+    'to_inch',
+]
