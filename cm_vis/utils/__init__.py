@@ -26,11 +26,12 @@ Examples
 
 from .axis import axis_line
 from .image import crop
-from .units import figsize, to_inch
+from .fig import figsize, to_inch, lock_canvas
 
 __all__ = [
     'axis_line',
     'crop',
     'figsize',
     'to_inch',
+    'lock_canvas',
 ]
