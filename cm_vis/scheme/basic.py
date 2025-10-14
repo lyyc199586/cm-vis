@@ -356,15 +356,13 @@ class SchemeBase:
         """
         Draw a pseudo 3d coordinate axes at a specified origin
         """
-        if textc is None:
-            textc = ['k', 'k', 'k']
         
-        for axis, t, tloc, tcolor  in zip([x_dir, y_dir, z_dir], text, textlocs, textc):
+        for axis, t, tloc in zip([x_dir, y_dir, z_dir], text, textlocs):
             xyfrom = origin.copy()
             xyto = np.array(axis) + np.array(xyfrom)
             self.add_arrow("-latex", xy=(origin, xyto), fc=arrowfc, ec=arrowec)
             self.add_text(xyto[0], xyto[1], t, loc=tloc, 
-                          textc=tcolor, offset=offset)
+                          textc=textc, offset=offset)
         
             
     def add_pathpatch(
