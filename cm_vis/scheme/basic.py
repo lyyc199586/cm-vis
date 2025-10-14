@@ -318,6 +318,7 @@ class SchemeBase:
         textlocs: List[str] = ["right", "upper"], 
         textc: Optional[str] = None, 
         arrowfc: Optional[str] = None, 
+        arrowec: Optional[str] = None,
         offset: Optional[float] = None
     ) -> None:
         """
@@ -335,7 +336,7 @@ class SchemeBase:
         for i in range(np.size(length)):
             xyto = origin.copy()
             xyto[i] = origin[i] + length[i]
-            self.add_arrow("-latex", xy=(origin, xyto), fc=arrowfc)
+            self.add_arrow("-latex", xy=(origin, xyto), fc=arrowfc, ec=arrowec)
             self.add_text(xyto[0], xyto[1], text[i], loc=textlocs[i], 
                           textc=textc, offset=offset)
     
@@ -349,6 +350,7 @@ class SchemeBase:
         textlocs: List[str] = ["right", "upper", "upper"], 
         textc: Optional[str] = None, 
         arrowfc: Optional[str] = None, 
+        arrowec: Optional[str] = None,
         offset: Optional[float] = None
     ) -> None:
         """
@@ -360,7 +362,7 @@ class SchemeBase:
         for axis, t, tloc, tcolor  in zip([x_dir, y_dir, z_dir], text, textlocs, textc):
             xyfrom = origin.copy()
             xyto = np.array(axis) + np.array(xyfrom)
-            self.add_arrow("-latex", xy=(origin, xyto), fc=arrowfc)
+            self.add_arrow("-latex", xy=(origin, xyto), fc=arrowfc, ec=arrowec)
             self.add_text(xyto[0], xyto[1], t, loc=tloc, 
                           textc=tcolor, offset=offset)
         
